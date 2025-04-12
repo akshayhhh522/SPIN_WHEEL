@@ -1,12 +1,12 @@
 import {Wheel} from '../../../dist/spin-wheel-esm.js';
 
 window.onload = () => {
-  let wheel;
-  
+  let wheel = null;
+
   // Initial wheel setup with new purple color scheme
   const props = {
     items: [
-      { label: 'Add your options!' }
+      {label: 'Add your options!'},
     ],
     itemBackgroundColors: [
       '#997BFF', // Base Purple
@@ -27,13 +27,16 @@ window.onload = () => {
     onRest: handleSpinComplete,
     pointerAngle: 0,
     rotationResistance: -50,
-    rotationSpeedMax: 1000
+    rotationSpeedMax: 1000,
   };
 
   // Initialize the wheel
   const container = document.querySelector('.wheel-wrapper');
   wheel = new Wheel(container, props);
   window.wheel = wheel;
+
+  console.log('Initializing the wheel with props:', props);
+  console.log('Wheel container:', container);
 
   // Get DOM elements
   const optionInput = document.getElementById('optionInput');
@@ -42,17 +45,25 @@ window.onload = () => {
   const resultDisplay = document.getElementById('resultDisplay');
   const spinBtn = document.getElementById('spinBtn');
 
+  console.log('DOM elements:', { optionInput, addOptionBtn, optionsList, resultDisplay, spinBtn });
+
+  if (!optionInput) console.error('optionInput not found');
+  if (!addOptionBtn) console.error('addOptionBtn not found');
+  if (!optionsList) console.error('optionsList not found');
+  if (!resultDisplay) console.error('resultDisplay not found');
+  if (!spinBtn) console.error('spinBtn not found');
+
   // Update the options list display
   function updateOptionsDisplay() {
     optionsList.innerHTML = '';
     wheel.items.forEach((item, index) => {
       const li = document.createElement('li');
       li.textContent = item.label;
-      
+
       const removeBtn = document.createElement('button');
       removeBtn.textContent = '×';
       removeBtn.onclick = () => removeOption(index);
-      
+
       li.appendChild(removeBtn);
       optionsList.appendChild(li);
     });
@@ -67,16 +78,16 @@ window.onload = () => {
       const newItems = [...wheel.items];
       const index = newItems.length;
       const backgroundColor = props.itemBackgroundColors[index % props.itemBackgroundColors.length];
-      const labelColor = backgroundColor === '#FFFFFF' || backgroundColor.startsWith('#9') || backgroundColor.startsWith('#A') || backgroundColor.startsWith('#C') 
-        ? '#0B0B0B' 
+      const labelColor = backgroundColor === '#FFFFFF' || backgroundColor.startsWith('#9') || backgroundColor.startsWith('#A') || backgroundColor.startsWith('#C')
+        ? '#0B0B0B'
         : '#FFFFFF';
-      
-      newItems.push({ 
+
+      newItems.push({
         label: newOption,
         backgroundColor,
-        labelColor
+        labelColor,
       });
-      
+
       wheel.items = newItems;
       optionInput.value = '';
       updateOptionsDisplay();
@@ -98,9 +109,9 @@ window.onload = () => {
   // Spin the wheel
   function spinWheel() {
     if (wheel.items.length < 2) return;
-    
+
     spinBtn.disabled = true;
-    
+
     // Moderate speed for smooth animation
     const speed = Math.random() * 200 + 700;
     wheel.spin(speed);
@@ -111,19 +122,28 @@ window.onload = () => {
     const winner = wheel.items[event.currentIndex].label;
     resultDisplay.textContent = `Winner: ${winner}`;
     resultDisplay.classList.add('show');
-    
+
     spinBtn.disabled = false;
-    
+
     setTimeout(() => {
       resultDisplay.classList.remove('show');
     }, 3000);
   }
 
   // Event Listeners
-  addOptionBtn.addEventListener('click', addOption);
-  spinBtn.addEventListener('click', spinWheel);
+  addOptionBtn.addEventListener('click', () => {
+    console.log('Add Option button clicked');
+    addOption();
+  });
+
+  spinBtn.addEventListener('click', () => {
+    console.log('Spin button clicked');
+    spinWheel();
+  });
+
   optionInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
+      console.log('Enter key pressed in option input');
       event.preventDefault();
       addOption();
     }
