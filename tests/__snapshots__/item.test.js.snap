@@ -180,6 +180,8 @@ Item {
     "_debug": false,
     "_dragEvents": Array [],
     "_frameRequestId": 1,
+    "_glowAnimationId": null,
+    "_glowPulseValue": 0,
     "_handler_onDevicePixelRatioChange": [Function],
     "_handler_onMouseDown": [Function],
     "_handler_onMouseMoveRefreshCursor": [Function],
@@ -191,6 +193,7 @@ Item {
     "_handler_onTouchStart": [Function],
     "_image": null,
     "_isCursorOverWheel": false,
+    "_isGlowActive": false,
     "_isInitialising": true,
     "_isInteractive": true,
     "_itemBackgroundColors": Array [
@@ -256,6 +259,7 @@ Item {
     "_rotationSpeedMax": 300,
     "_size": 500,
     "_spinToTimeEnd": null,
+    "_stopGlowTimeoutId": null,
     "canvas": <canvas
       aria-label="An image of a spinning prize wheel."
       height="500"
@@ -263,6 +267,7 @@ Item {
       style="display: block; width: 500px; height: 500px;"
       width="500"
     />,
+    "highlightIndex": null,
   },
 }
 `;

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import * as util from './util.js';
 import * as Constants from './constants.js';
 import {Defaults} from './constants.js';
@@ -24,6 +25,11 @@ export class Wheel {
     this._spinToTimeEnd = null; // Used to animate the wheel for spinTo()
     this._lastSpinFrameTime = null; // Used to animate the wheel for spin()
     this._isCursorOverWheel = false;
+    this.highlightIndex = null; // Index of the highlighted (winning) segment
+    this._isGlowActive = false;
+    this._glowPulseValue = 0;
+    this._glowAnimationId = null;
+    this._stopGlowTimeoutId = null;
 
     this.add(container);
 
@@ -221,21 +227,32 @@ export class Wheel {
 
   }
 
+  /**
+   * Draws the background colors for each wheel item/segment.
+   */
   drawItemBackgrounds(ctx, angles = []) {
-
-    for (const [i, a] of angles.entries()) {
-
-      const item = this._items[i];
-
-      ctx.fillStyle = item.backgroundColor ?? (
-        // Fall back to a value from the repeating set:
-        this._itemBackgroundColors[i % this._itemBackgroundColors.length]
-      );
-
-      ctx.fill(item.path);
-
+    for (const [i, item] of this._items.entries()) {
+      ctx.save();
+      ctx.fillStyle = item.backgroundColor ?? this._itemBackgroundColors[i % this._itemBackgroundColors.length];
+      if (item.path instanceof Path2D) {
+        ctx.fill(item.path);
+      } else {
+        ctx.restore();
+        continue;
+      }
+      // Pulsing glow effect for the winning segment
+      if (this._isGlowActive && this.highlightIndex === i) {
+        const pulse = Math.sin(this._glowPulseValue);
+        const pulseIntensity = (pulse + 1) / 2;
+        ctx.save();
+        ctx.shadowBlur = 5 + pulseIntensity * 20;
+        ctx.shadowColor = '#fff';
+        ctx.globalAlpha = 0.7 + 0.3 * pulseIntensity;
+        ctx.fill(item.path);
+        ctx.restore();
+      }
+      ctx.restore();
     }
-
   }
 
   drawItemImages(ctx, angles = []) {
@@ -424,29 +441,14 @@ export class Wheel {
 
       ctx.rotate(util.degRad(this.itemLabelRotation));
 
-
-      if (this.debug) {
-        ctx.save();
-
-        let alignAdjust = 0;
-        if (this.itemLabelAlign === 'left') {
-          alignAdjust = this._labelMaxWidth;
-        } else if (this.itemLabelAlign === 'center') {
-          alignAdjust = this._labelMaxWidth / 2;
-        }
-
-        // Draw label baseline
-        ctx.beginPath();
-        ctx.moveTo(alignAdjust, 0);
-        ctx.lineTo(-this._labelMaxWidth + alignAdjust, 0);
-        ctx.strokeStyle = Constants.Debugging.labelBoundingBoxColor;
-        ctx.lineWidth = actualDebugLineWidth;
-        ctx.stroke();
-
-        // Draw label bounding box
-        ctx.strokeRect(alignAdjust, -this._itemLabelFontSize / 2, -this._labelMaxWidth, this._itemLabelFontSize);
-
-        ctx.restore();
+      // Highlight label for winner
+      if (this.highlightIndex === i) {
+        ctx.font = `bold ${this._itemLabelFontSize * 1.15}px ${this._itemLabelFont}`;
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 4;
+        ctx.strokeText(item.label, 0, this._itemLabelFontSize * -this.itemLabelBaselineOffset);
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('★', 0, -this._itemLabelFontSize * 1.1); // Star above label
       }
 
       if (this._itemLabelStrokeWidth > 0) {
@@ -571,6 +573,7 @@ export class Wheel {
    */
   spin(rotationSpeed = 0) {
     if (!util.isNumber(rotationSpeed)) throw new Error('rotationSpeed must be a number');
+    this.stopGlow();
     this._dragEvents = [];
     this.beginSpin(rotationSpeed, 'spin');
   }
@@ -637,6 +640,10 @@ export class Wheel {
    * Immediately stop the wheel from spinning, regardless of which method was used to spin it.
    */
   stop() {
+    console.log('wheel.stop() method called'); // <<< ADD THIS LINE
+
+    // Track if we need to raise the onRest event
+    const wasSpin = this._lastSpinFrameTime !== null;
 
     // Stop the wheel if it was spun via `spinTo()`.
     this._spinToTimeEnd = null;
@@ -645,6 +652,10 @@ export class Wheel {
     this._rotationSpeed = 0;
     this._lastSpinFrameTime = null;
 
+    // Raise the onRest event if we stopped a spin() animation
+    if (wasSpin) {
+      this.raiseEvent_onRest();
+    }
   }
 
   /**
@@ -805,6 +816,42 @@ export class Wheel {
     this.canvas.setAttribute('role', 'img');
     const wheelDescription = (this.items.length >= 2) ? ` The wheel has ${this.items.length} slices.` : '';
     this.canvas.setAttribute('aria-label', 'An image of a spinning prize wheel.' + wheelDescription);
+  }
+
+  // --- Pulsing Glow Methods ---
+  startGlow() {
+    if (this.highlightIndex === null || this.highlightIndex < 0) return;
+    this._isGlowActive = true;
+    this._glowPulseValue = 0;
+
+    // Cancel any existing animation
+    if (this._glowAnimationId) {
+      cancelAnimationFrame(this._glowAnimationId);
+    }
+
+    this._animateGlow();
+
+    // Clear any existing timeout and set a new one to stop glow after 3 seconds
+    clearTimeout(this._stopGlowTimeoutId);
+    this._stopGlowTimeoutId = setTimeout(() => this.stopGlow(), 3000);
+  }
+
+  _animateGlow() {
+    if (!this._isGlowActive) return;
+    this._glowPulseValue += 0.1;
+    this.refresh();
+    this._glowAnimationId = requestAnimationFrame(this._animateGlow.bind(this));
+  }
+
+  stopGlow() {
+    this._isGlowActive = false;
+    if (this._glowAnimationId) {
+      cancelAnimationFrame(this._glowAnimationId);
+      this._glowAnimationId = null;
+    }
+    clearTimeout(this._stopGlowTimeoutId);
+    this._stopGlowTimeoutId = null;
+    this.refresh();
   }
 
   /**
@@ -1445,6 +1492,7 @@ export class Wheel {
   }
 
   raiseEvent_onRest(data = {}) {
+    console.log('raiseEvent_onRest() called'); // <<< ADD THIS LINE
     this.onRest?.({
       type: 'rest',
       currentIndex: this._currentIndex,

@@ -2,7 +2,16 @@ import {Wheel} from '../dist/spin-wheel-esm.js';
 
 window.onload = () => {
   let wheel;
+  let spinTimeout = null;
+  let selectedSpeed = 'medium';
+  let stopGlowTimeoutId = null; // Store timeout ID globally to clear it when needed
   
+  const speedMap = {
+    slow: 400,
+    medium: 700,
+    fast: 1000
+  };
+
   // Initial wheel setup with new purple color scheme
   const props = {
     items: [
@@ -34,6 +43,27 @@ window.onload = () => {
   const container = document.querySelector('.wheel-wrapper');
   wheel = new Wheel(container, props);
   window.wheel = wheel;
+
+  // Insert speed controls into the DOM
+  const spinControls = document.querySelector('.spin-controls');
+  const speedControls = document.createElement('div');
+  speedControls.className = 'speed-controls';
+  speedControls.innerHTML = `
+    <span>Speed:</span>
+    <button class="speed-btn" data-speed="slow">Slow</button>
+    <button class="speed-btn active-speed" data-speed="medium">Medium</button>
+    <button class="speed-btn" data-speed="fast">Fast</button>
+  `;
+  spinControls.insertBefore(speedControls, spinControls.firstChild);
+
+  // Speed button event listeners
+  speedControls.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedSpeed = btn.getAttribute('data-speed');
+      speedControls.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active-speed'));
+      btn.classList.add('active-speed');
+    });
+  });
 
   // Get DOM elements
   const optionInput = document.getElementById('optionInput');
@@ -100,22 +130,117 @@ window.onload = () => {
     if (wheel.items.length < 2) return;
     
     spinBtn.disabled = true;
+    resultDisplay.classList.remove('show');
     
-    // Moderate speed for smooth animation
-    const speed = Math.random() * 200 + 700;
+    // Clear any previous highlight and glow before spinning
+    wheel.highlightIndex = null;
+    wheel.stopGlow();
+    wheel.refresh();
+    
+    // Use selected speed
+    const speed = speedMap[selectedSpeed];
+    
+    // Add a specific onRest event handler to ensure we highlight when auto-stopped
+    const originalOnRest = wheel.onRest;
+    wheel.onRest = (event) => {
+      // Reset to original handler after first trigger
+      wheel.onRest = originalOnRest;
+      
+      // Cancel stop timeout since the wheel has naturally come to rest
+      if (spinTimeout) {
+        clearTimeout(spinTimeout);
+        spinTimeout = null;
+      }
+      
+      // Call the original handler to process the event
+      if (originalOnRest) {
+        originalOnRest(event);
+      }
+    };
+    
     wheel.spin(speed);
+
+    // Set a timer to stop the wheel after 10 seconds
+    if (spinTimeout) clearTimeout(spinTimeout);
+    spinTimeout = setTimeout(() => {
+      wheel.stop();
+      spinBtn.disabled = false;
+    }, 10000);
   }
 
-  // Handle spin completion
+  // Revised handleSpinComplete function in index.js
   function handleSpinComplete(event) {
-    const winner = wheel.items[event.currentIndex].label;
-    resultDisplay.textContent = `Winner: ${winner}`;
-    resultDisplay.classList.add('show');
-    
-    spinBtn.disabled = false;
-    
-    setTimeout(() => {
-      resultDisplay.classList.remove('show');
+    console.log('handleSpinComplete triggered. Event:', event); // Debug log
+
+    const winnerIndex = event.currentIndex;
+
+    if (winnerIndex === undefined || winnerIndex === null || winnerIndex < 0) {
+         console.error('Invalid winnerIndex received in handleSpinComplete:', winnerIndex);
+         if (spinBtn) spinBtn.disabled = false;
+         return;
+    }
+
+    if (!wheel || !wheel.items || winnerIndex >= wheel.items.length) {
+         console.error('Wheel object or items array is invalid, or winnerIndex out of bounds.');
+         if (spinBtn) spinBtn.disabled = false;
+         return;
+    }
+
+    const winnerItem = wheel.items[winnerIndex];
+    if (!winnerItem) {
+        console.error('Could not find winner item for index:', winnerIndex);
+        if (spinBtn) spinBtn.disabled = false;
+        return;
+    }
+
+    const winnerLabel = winnerItem.label || `Item ${winnerIndex + 1}`;
+    if (resultDisplay) {
+        resultDisplay.textContent = `Winner: ${winnerLabel}`;
+        resultDisplay.classList.add('show');
+    }
+
+    // --- DETAILED CHECK for startGlow method ---
+    wheel.highlightIndex = winnerIndex; // Set the index first
+    console.log('Checking wheel object just before calling startGlow:', wheel);
+
+    if (wheel && typeof wheel.startGlow === 'function') {
+        // Method exists, call it
+        console.log('startGlow method FOUND on wheel object. Calling it...');
+        wheel.startGlow();
+    } else {
+        // Method does NOT exist
+        console.error('startGlow method NOT FOUND on wheel object!');
+        // Log available keys to see what *is* available
+        if (wheel) {
+             console.log('Available keys on wheel object:', Object.keys(wheel));
+             // Also check the prototype if possible
+             if (Object.getPrototypeOf(wheel)) {
+                 console.log('Available keys on wheel prototype:', Object.keys(Object.getPrototypeOf(wheel)));
+             }
+        } else {
+            console.error('The wheel variable itself is invalid here.');
+        }
+    }
+    // --- END OF DETAILED CHECK ---
+
+    // Re-enable spin button
+    if (spinBtn) spinBtn.disabled = false;
+
+    // Stop glow and remove highlight after 3 seconds
+    if (stopGlowTimeoutId) clearTimeout(stopGlowTimeoutId);
+    stopGlowTimeoutId = setTimeout(() => {
+        console.log('Stopping glow and removing highlight.');
+        if (wheel) {
+             wheel.highlightIndex = null;
+             // Call stopGlow only if it exists (though it should if startGlow does)
+             if (typeof wheel.stopGlow === 'function') {
+                 wheel.stopGlow();
+             } else {
+                  console.error('stopGlow method not found during cleanup!');
+                  // Might need to manually call refresh if stopGlow is missing
+                  // wheel.refresh();
+             }
+        }
     }, 3000);
   }
 
