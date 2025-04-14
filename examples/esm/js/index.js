@@ -1,12 +1,9 @@
 import {Wheel} from '../../../dist/spin-wheel-esm.js';
 
 window.onload = () => {
-  let wheel;
-  
-  // Initial wheel setup with new purple color scheme
-  const props = {
+  const wheel = new Wheel(document.querySelector('.wheel-wrapper'), {
     items: [
-      { label: 'Add your options!' }
+      {label: 'Add your options!'},
     ],
     itemBackgroundColors: [
       '#997BFF', // Base Purple
@@ -17,7 +14,7 @@ window.onload = () => {
       '#FFFFFF', // White for contrast
       '#1A1A1A', // Dark Gray
     ],
-    itemLabelColors: ['#0B0B0B', '#FFFFFF'], // Dark text on light segments, white on dark
+    itemLabelColors: ['#0B0B0B', '#FFFFFF'],
     itemLabelFont: 'Segoe UI, sans-serif',
     itemLabelFontSizeMax: 40,
     borderColor: '#997BFF',
@@ -27,12 +24,9 @@ window.onload = () => {
     onRest: handleSpinComplete,
     pointerAngle: 0,
     rotationResistance: -50,
-    rotationSpeedMax: 1000
-  };
+    rotationSpeedMax: 1000,
+  });
 
-  // Initialize the wheel
-  const container = document.querySelector('.wheel-wrapper');
-  wheel = new Wheel(container, props);
   window.wheel = wheel;
 
   // Get DOM elements
@@ -48,11 +42,11 @@ window.onload = () => {
     wheel.items.forEach((item, index) => {
       const li = document.createElement('li');
       li.textContent = item.label;
-      
+
       const removeBtn = document.createElement('button');
       removeBtn.textContent = '×';
       removeBtn.onclick = () => removeOption(index);
-      
+
       li.appendChild(removeBtn);
       optionsList.appendChild(li);
     });
@@ -66,17 +60,17 @@ window.onload = () => {
     if (newOption) {
       const newItems = [...wheel.items];
       const index = newItems.length;
-      const backgroundColor = props.itemBackgroundColors[index % props.itemBackgroundColors.length];
-      const labelColor = backgroundColor === '#FFFFFF' || backgroundColor.startsWith('#9') || backgroundColor.startsWith('#A') || backgroundColor.startsWith('#C') 
-        ? '#0B0B0B' 
+      const backgroundColor = wheel.props.itemBackgroundColors[index % wheel.props.itemBackgroundColors.length];
+      const labelColor = backgroundColor === '#FFFFFF' || backgroundColor.startsWith('#9') || backgroundColor.startsWith('#A') || backgroundColor.startsWith('#C')
+        ? '#0B0B0B'
         : '#FFFFFF';
-      
-      newItems.push({ 
+
+      newItems.push({
         label: newOption,
         backgroundColor,
-        labelColor
+        labelColor,
       });
-      
+
       wheel.items = newItems;
       optionInput.value = '';
       updateOptionsDisplay();
@@ -98,9 +92,9 @@ window.onload = () => {
   // Spin the wheel
   function spinWheel() {
     if (wheel.items.length < 2) return;
-    
+
     spinBtn.disabled = true;
-    
+
     // Moderate speed for smooth animation
     const speed = Math.random() * 200 + 700;
     wheel.spin(speed);
@@ -111,9 +105,9 @@ window.onload = () => {
     const winner = wheel.items[event.currentIndex].label;
     resultDisplay.textContent = `Winner: ${winner}`;
     resultDisplay.classList.add('show');
-    
+
     spinBtn.disabled = false;
-    
+
     setTimeout(() => {
       resultDisplay.classList.remove('show');
     }, 3000);
