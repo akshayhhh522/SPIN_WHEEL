@@ -1,0 +1,185 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 15px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  height: 100%;
+  background-color: #000000;
+}
+
+body {
+  overscroll-behavior-y: contain;
+  position: fixed;
+  width: 100%;
+  touch-action: none;
+  display: flex;
+  flex-direction: row;
+  color: #FFFFFF;
+}
+
+.controls-wrapper {
+  padding: 20px;
+  background-color: #1A1A1A;
+  width: 300px;
+  overflow-y: auto;
+  border-right: 1px solid #333333;
+}
+
+.options-input {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.options-input input {
+  flex: 1;
+  padding: 8px;
+  background-color: #000000;
+  border: 1px solid #997BFF;
+  border-radius: 4px;
+  color: #FFFFFF;
+  transition: all 0.3s ease;
+}
+
+.options-input input:focus {
+  outline: none;
+  border-color: #A88FFF;
+  box-shadow: 0 0 5px rgba(153, 123, 255, 0.5);
+}
+
+.options-input button {
+  padding: 8px 16px;
+  background-image: linear-gradient(to bottom, #997BFF, #8A6AE0);
+  color: #0B0B0B;
+  border: 1px solid #8A6AE0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.options-input button:hover {
+  filter: brightness(1.15);
+}
+
+h3 {
+  color: #997BFF;
+  font-size: 1.2em;
+  margin-bottom: 15px;
+}
+
+#optionsList {
+  list-style: none;
+  margin: 10px 0;
+}
+
+#optionsList li {
+  background-color: #1A1A1A;
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #333333;
+  transition: all 0.3s ease;
+}
+
+#optionsList li:hover {
+  border-color: #997BFF;
+}
+
+#optionsList button {
+  padding: 4px 8px;
+  background-color: transparent;
+  color: #997BFF;
+  border: 1px solid #997BFF;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#optionsList button:hover {
+  background-color: #997BFF;
+  color: #0B0B0B;
+}
+
+.wheel-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: #000000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spin-controls {
+  margin: 20px 0;
+}
+
+.spin-button {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.2em;
+  font-weight: bold;
+  background-image: linear-gradient(to bottom, #997BFF, #8A6AE0);
+  color: #0B0B0B;
+  border: 1px solid #8A6AE0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+}
+
+.spin-button:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+spin-button:disabled {
+  background-image: none;
+  background-color: #333333;
+  border-color: #333333;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  color: #997BFF;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.3s ease;
+}
+
+#resultDisplay {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #1A1A1A;
+  border: 1px solid #997BFF;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.2em;
+  display: none;
+  color: #997BFF;
+}
+
+#resultDisplay.show {
+  display: block;
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

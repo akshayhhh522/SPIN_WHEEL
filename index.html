@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Spin Wheel Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <link rel="icon" href="data:image/x-icon;," type="image/x-icon">
+  <link rel="stylesheet" href="css/index.css"/>
+  <script src="js/index.js" type="module"></script>
+</head>
+
+<body>
+  <div class="controls-wrapper">
+    <div class="options-input">
+      <input type="text" id="optionInput" placeholder="Enter option name">
+      <button id="addOptionBtn">Add Option</button>
+    </div>
+
+    <h3>Current Options:</h3>
+    <ul id="optionsList"></ul>
+
+    <div class="spin-controls">
+      <button id="spinBtn" class="spin-button">Spin!</button>
+    </div>
+
+    <div id="resultDisplay"></div>
+  </div>
+
+  <div class="wheel-wrapper">
+    <div class="wheel-pointer">▼</div>
+  </div>
+</body>
+
+</html>
