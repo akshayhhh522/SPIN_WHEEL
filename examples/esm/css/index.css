@@ -149,18 +149,6 @@ spin-button:disabled {
   cursor: not-allowed;
 }
 
-.wheel-pointer {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 40px;
-  color: #997BFF;
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 0.3s ease;
-}
-
 #resultDisplay {
   margin-top: 20px;
   padding: 15px;

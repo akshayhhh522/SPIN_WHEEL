@@ -220,6 +220,7 @@ export class Wheel {
     this.drawBorder(ctx);
     this.drawImage(ctx, this._image, false);
     this.drawImage(ctx, this._overlayImage, true);
+    this.drawPointerMarker(ctx); // <-- Add marker at the top
     this.drawDebugPointerLine(ctx);
     //this.drawDebugDragPoints(ctx);
 
@@ -586,18 +587,13 @@ export class Wheel {
    * For example easing functions see [easing-utils](https://github.com/AndrewRayCode/easing-utils).
    */
   spinTo(rotation = 0, duration = 0, easingFunction = null) {
-
+    console.log('[Wheel.spinTo] rotation:', rotation, '| duration:', duration);
     if (!util.isNumber(rotation)) throw new Error('Error: rotation must be a number');
     if (!util.isNumber(duration)) throw new Error('Error: duration must be a number');
-
     this.stop();
-
     this._dragEvents = [];
-
     this.animate(rotation, duration, easingFunction);
-
     this.raiseEvent_onSpin({method: 'spinto', targetRotation: rotation, duration});
-
   }
 
   /**
@@ -611,20 +607,14 @@ export class Wheel {
    * For example easing functions see [easing-utils](https://github.com/AndrewRayCode/easing-utils).
    */
   spinToItem(itemIndex = 0, duration = 0, spinToCenter = true, numberOfRevolutions = 1, direction = 1, easingFunction = null) {
-
+    console.log('[Wheel.spinToItem] itemIndex:', itemIndex, '| duration:', duration, '| spinToCenter:', spinToCenter, '| numberOfRevolutions:', numberOfRevolutions, '| direction:', direction);
     this.stop();
-
     this._dragEvents = [];
-
     const itemAngle = spinToCenter ? this.items[itemIndex].getCenterAngle() : this.items[itemIndex].getRandomAngle();
-
     let newRotation = util.calcWheelRotationForTargetAngle(this.rotation, itemAngle - this._pointerAngle, direction);
     newRotation += ((numberOfRevolutions * 360) * direction);
-
     this.animate(newRotation, duration, easingFunction);
-
     this.raiseEvent_onSpin({method: 'spintoitem', targetItemIndex: itemIndex, targetRotation: newRotation, duration});
-
   }
 
   animate(newRotation, duration, easingFunction) {
@@ -852,6 +842,32 @@ export class Wheel {
     clearTimeout(this._stopGlowTimeoutId);
     this._stopGlowTimeoutId = null;
     this.refresh();
+  }
+
+  /**
+   * Draw a pointer marker at the top of the canvas, pointing at the winning option.
+   */
+  drawPointerMarker(ctx) {
+    if (!ctx || !this._center) return;
+    const markerWidth = this.getScaledNumber(36); // wider for visibility
+    const markerHeight = this.getScaledNumber(40); // taller for a longer pointer
+    // Base at the very top of the canvas
+    const baseY = 0;
+    const tipY = this._center.y - this._actualRadius - this.getScaledNumber(8); // tip just above the wheel
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(this._center.x, tipY); // tip of the triangle (points at winning option)
+    ctx.lineTo(this._center.x - markerWidth / 2, baseY); // left base at top edge
+    ctx.lineTo(this._center.x + markerWidth / 2, baseY); // right base at top edge
+    ctx.closePath();
+    ctx.fillStyle = this._borderColor || '#FF4136'; // match wheel border color
+    ctx.strokeStyle = '#fff'; // white border for contrast
+    ctx.lineWidth = this.getScaledNumber(3);
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   /**

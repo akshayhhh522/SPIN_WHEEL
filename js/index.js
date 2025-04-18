@@ -62,8 +62,11 @@ window.onload = () => {
       selectedSpeed = btn.getAttribute('data-speed');
       speedControls.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active-speed'));
       btn.classList.add('active-speed');
+      console.log('[Speed Control] selectedSpeed changed to:', selectedSpeed);
     });
   });
+  // Log initial selectedSpeed
+  console.log('[Init] selectedSpeed:', selectedSpeed);
 
   // Get DOM elements
   const optionInput = document.getElementById('optionInput');
@@ -72,21 +75,31 @@ window.onload = () => {
   const resultDisplay = document.getElementById('resultDisplay');
   const spinBtn = document.getElementById('spinBtn');
 
-  // Update the options list display
+  // Render the options list with weight input fields
   function updateOptionsDisplay() {
     optionsList.innerHTML = '';
+    const template = document.getElementById('optionItemTemplate');
     wheel.items.forEach((item, index) => {
-      const li = document.createElement('li');
-      li.textContent = item.label;
-      
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = '×';
+      const clone = template.content.cloneNode(true);
+      const labelSpan = clone.querySelector('.option-label');
+      labelSpan.textContent = item.label;
+      const weightInput = clone.querySelector('.option-weight');
+      weightInput.value = item.weight || 1;
+      weightInput.id = `probability-${index}`;
+      weightInput.addEventListener('input', (e) => {
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+        e.target.value = val;
+        // Only update the input, do NOT sync to item.weight for the wheel
+        // item.weight = val; // <-- DO NOT DO THIS
+        console.log(`[Weight Input] Option '${item.label}' input changed to:`, val);
+      });
+      const removeBtn = clone.querySelector('.remove-btn');
       removeBtn.onclick = () => removeOption(index);
-      
-      li.appendChild(removeBtn);
-      optionsList.appendChild(li);
+      optionsList.appendChild(clone);
     });
-
+    // Log the weights currently on the wheel (should always be 1 for equal segments)
+    console.log('[updateOptionsDisplay] wheel.items:', wheel.items.map(i => ({label: i.label, weight: i.weight})));
     spinBtn.disabled = wheel.items.length < 2;
   }
 
@@ -94,19 +107,21 @@ window.onload = () => {
   function addOption() {
     const newOption = optionInput.value.trim();
     if (newOption) {
-      const newItems = [...wheel.items];
+      let newItems = [...wheel.items];
+      // Remove the default item if present
+      if (newItems.length === 1 && newItems[0].label === 'Add your options!') {
+        newItems = [];
+      }
       const index = newItems.length;
       const backgroundColor = props.itemBackgroundColors[index % props.itemBackgroundColors.length];
       const labelColor = backgroundColor === '#FFFFFF' || backgroundColor.startsWith('#9') || backgroundColor.startsWith('#A') || backgroundColor.startsWith('#C') 
         ? '#0B0B0B' 
         : '#FFFFFF';
-      
       newItems.push({ 
         label: newOption,
         backgroundColor,
         labelColor
       });
-      
       wheel.items = newItems;
       optionInput.value = '';
       updateOptionsDisplay();
@@ -127,45 +142,65 @@ window.onload = () => {
 
   // Spin the wheel
   function spinWheel() {
-    if (wheel.items.length < 2) return;
-    
+    console.log('[SpinWheel] Called. Current selectedSpeed:', selectedSpeed);
     spinBtn.disabled = true;
-    resultDisplay.classList.remove('show');
-    
-    // Clear any previous highlight and glow before spinning
-    wheel.highlightIndex = null;
-    wheel.stopGlow();
-    wheel.refresh();
-    
-    // Use selected speed
-    const speed = speedMap[selectedSpeed];
-    
-    // Add a specific onRest event handler to ensure we highlight when auto-stopped
-    const originalOnRest = wheel.onRest;
-    wheel.onRest = (event) => {
-      // Reset to original handler after first trigger
-      wheel.onRest = originalOnRest;
-      
-      // Cancel stop timeout since the wheel has naturally come to rest
-      if (spinTimeout) {
-        clearTimeout(spinTimeout);
-        spinTimeout = null;
+    // Build weighted array using integer weights from input fields only
+    const weightedArray = [];
+    wheel.items.forEach((item, index) => {
+      const weightInput = document.getElementById(`probability-${index}`);
+      let weight = parseInt(weightInput?.value || '1', 10);
+      if (isNaN(weight) || weight < 1) weight = 1;
+      // DO NOT update item.weight here!
+      // item.weight = weight; // <-- DO NOT DO THIS
+      for (let i = 0; i < weight; i++) {
+        weightedArray.push(item.label);
       }
-      
-      // Call the original handler to process the event
-      if (originalOnRest) {
-        originalOnRest(event);
-      }
-    };
-    
-    wheel.spin(speed);
-
-    // Set a timer to stop the wheel after 10 seconds
-    if (spinTimeout) clearTimeout(spinTimeout);
-    spinTimeout = setTimeout(() => {
-      wheel.stop();
+      console.log(`[spinWheel] Option '${item.label}' input weight:`, weight);
+    });
+    // Log the weights currently on the wheel (should always be 1 for equal segments)
+    console.log('[spinWheel] wheel.items before spin:', wheel.items.map(i => ({label: i.label, weight: i.weight})));
+    if (weightedArray.length === 0) {
+      resultDisplay.textContent = 'No valid options to spin!';
       spinBtn.disabled = false;
-    }, 10000);
+      return;
+    }
+    // Shuffle the array
+    for (let i = weightedArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [weightedArray[i], weightedArray[j]] = [weightedArray[j], weightedArray[i]];
+    }
+    // Pick a random winner label
+    const winnerLabel = weightedArray[Math.floor(Math.random() * weightedArray.length)];
+    // Find the index of the winner in the wheel items
+    const winnerIndex = wheel.items.findIndex(item => item.label === winnerLabel);
+    if (winnerIndex !== -1) {
+      wheel.highlightIndex = null;
+      if (typeof wheel.stopGlow === 'function') wheel.stopGlow();
+      // Use selectedSpeed to determine spin duration and revolutions
+      let duration = 10000; // default 10 seconds
+      let revolutions = 3; // default for slow
+      if (selectedSpeed === 'slow') {
+        duration = 12000;
+        revolutions = 3;
+      } else if (selectedSpeed === 'medium') {
+        duration = 10000;
+        revolutions = 6;
+      } else if (selectedSpeed === 'fast') {
+        duration = 7000;
+        revolutions = 9;
+      }
+      console.log('[Spin] selectedSpeed:', selectedSpeed, '| duration:', duration, '| revolutions:', revolutions);
+      wheel.spinToItem(winnerIndex, duration, true, revolutions);
+      wheel.onRest = () => {
+        wheel.highlightIndex = winnerIndex;
+        if (typeof wheel.startGlow === 'function') wheel.startGlow();
+        resultDisplay.textContent = `Winner: ${winnerLabel}`;
+        spinBtn.disabled = false;
+      };
+    } else {
+      resultDisplay.textContent = 'Winner not found!';
+      spinBtn.disabled = false;
+    }
   }
 
   // Revised handleSpinComplete function in index.js
