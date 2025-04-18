@@ -1,0 +1,171 @@
+/* config.css - Basic styles, adapt as needed */
+:root {
+    /* Using the purple theme variables */
+    --stan-accent: #997BFF;
+    --stan-accent-darker: #8A6AE0;
+    --stan-bg: #000000;
+    --stan-text-light: #FFFFFF;
+    --stan-text-dark: #0B0B0B;
+    --stan-input-bg: #1A1A1A;
+    --stan-border-color: #444; /* Added border color variable */
+    --stan-hover-bg: #2a2a2a; /* Added hover background */
+  }
+  
+  body {
+    font-family: sans-serif;
+    background-color: var(--stan-bg);
+    color: var(--stan-text-light);
+    padding: 20px;
+    max-width: 600px;
+    margin: 20px auto;
+    border: 1px solid var(--stan-border-color); /* Use variable */
+    border-radius: 8px;
+  }
+  
+  h1, h2, h3 { /* Apply to h3 as well */
+    color: var(--stan-accent);
+    text-align: center;
+    border-bottom: 1px solid var(--stan-border-color); /* Use variable */
+    padding-bottom: 10px;
+    margin-bottom: 25px; /* Increased margin */
+  }
+  
+  #optionsList {
+    list-style: none; /* Ensure no list bullets */
+    padding: 0; /* Remove default padding */
+    margin-bottom: 25px; /* Add space below list */
+  }
+
+  .option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px; /* Increased padding */
+    border: 1px solid var(--stan-border-color); /* Use variable */
+    border-radius: 6px; /* Slightly rounded corners */
+    margin-bottom: 10px; /* Space between items */
+    background-color: var(--stan-input-bg);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .option-item:hover {
+    background-color: var(--stan-hover-bg);
+    border-color: var(--stan-accent);
+  }
+
+  .option-item .option-label { /* Target label span specifically */
+    flex-grow: 1;
+    margin-right: 15px; /* Increased spacing */
+    word-break: break-all;
+    color: var(--stan-text-light);
+  }
+
+  .option-item label {
+      display: flex; /* Align label text and input */
+      align-items: center;
+      gap: 5px; /* Space between 'Weight:' and input */
+      color: #aaa; /* Dim label text slightly */
+      white-space: nowrap; /* Prevent 'Weight:' from wrapping */
+  }
+  
+  .option-item input[type="number"] {
+    width: 60px; /* Slightly narrower */
+    padding: 8px; /* Consistent padding */
+    text-align: right;
+    background-color: #000000; /* Match other inputs */
+    color: var(--stan-text-light);
+    border: 1px solid var(--stan-accent); /* Use accent for focus indication */
+    border-radius: 4px; /* Match other inputs */
+    transition: all 0.3s ease;
+  }
+
+  .option-item input[type="number"]:focus {
+    outline: none;
+    border-color: #A88FFF;
+    box-shadow: 0 0 5px rgba(153, 123, 255, 0.5);
+  }
+
+  /* Style for the remove button */
+  .option-item .remove-btn {
+    background-color: transparent;
+    color: #aaa; /* Dim color */
+    border: none;
+    border-radius: 50%; /* Make it circular */
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    line-height: 1;
+    padding: 2px 6px; /* Adjust padding for circle */
+    margin-left: 10px; /* Space from weight input */
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .option-item .remove-btn:hover {
+    background-color: #ff6b6b; /* Red background on hover */
+    color: var(--stan-text-light);
+  }
+  
+  #saveWeightsBtn {
+    /* Copied and adapted from index.css for consistency */
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: bold;
+    background-image: linear-gradient(to bottom, var(--stan-accent), var(--stan-accent-darker));
+    color: var(--stan-text-dark);
+    border: 1px solid var(--stan-accent-darker);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px; /* Spacing above */
+    margin-bottom: 25px; /* Space below save button */
+    box-sizing: border-box;
+  }
+
+  #saveWeightsBtn:hover:not(:disabled) {
+    filter: brightness(1.15);
+  }
+
+  #saveWeightsBtn:disabled {
+    background-image: none;
+    background-color: #333333;
+    border-color: #333333;
+    color: #666666;
+    cursor: not-allowed;
+  }
+
+  .spin-controls {
+    margin-top: 20px; /* Ensure spacing above */
+    padding-top: 20px;
+    border-top: 1px solid var(--stan-border-color);
+  }
+
+  .speed-controls {
+     margin-bottom: 15px; /* Space below speed buttons */
+  }
+
+  #spinBtn {
+  }
+
+  #resultDisplay {
+    /* Copied and adapted from index.css */
+    margin-top: 25px; /* Increased spacing */
+    padding: 15px;
+    background-color: var(--stan-input-bg);
+    border: 1px solid var(--stan-accent);
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1em; /* Slightly adjusted size */
+    display: none; /* Hidden by default */
+    color: var(--stan-accent); /* Use accent color for the text */
+    opacity: 0; /* Start hidden for fade-in */
+    transition: opacity 0.5s ease-in-out, display 0s 0.5s; /* Fade transition */
+  }
+  
+  #resultDisplay.show {
+    display: block;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+    /* Removed animation as opacity transition handles it */
+  }

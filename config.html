@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config</title>
+    <link rel="stylesheet" href="css/config.css">
+</head>
+<body>
+  <div>
+    <div class="options-input" hidden>
+      <input type="text" id="optionInput" placeholder="Enter option name" hidden>
+      <button id="addOptionBtn" hidden>Add Option</button>
+    </div>
+    <h3>Current Options:</h3>
+    <ul id="optionsList"></ul>
+    <template id="optionItemTemplate">
+      <li class="option-item">
+        <span class="option-label"></span>
+        <label style="margin-left:8px;">Weight:
+          <input type="number" class="option-weight" min="1" step="1" value="1" style="width:60px;">
+        </label>
+        <button type="button" class="remove-btn">×</button>
+      </li>
+    </template>
+    <button id="saveWeightsBtn">Save Weights</button>
+    <div class="spin-controls">
+      <div class="speed-controls">
+        <span hidden>Speed:</span>
+        <button class="speed-btn" data-speed="slow" hidden>Slow</button>
+        <button class="speed-btn active-speed" data-speed="medium" hidden>Medium</button>
+        <button class="speed-btn" data-speed="fast" hidden>Fast</button>
+      </div>
+      <!-- <button id="spinBtn" class="spin-button" hidden>Spin!</button> -->
+    </div>
+    <div id="resultDisplay">Winner: 1</div>
+  </div>
+  <script src="js/config.js"></script>
+</body>
+</html>

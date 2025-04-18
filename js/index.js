@@ -5,12 +5,32 @@ window.onload = () => {
   let spinTimeout = null;
   let selectedSpeed = 'medium';
   let stopGlowTimeoutId = null; // Store timeout ID globally to clear it when needed
-  
+
+  const STORAGE_KEY = 'wheelOptions';
+  const SPEED_KEY = 'spinSpeed';
+
   const speedMap = {
     slow: 400,
     medium: 700,
     fast: 1000
   };
+
+  // Function to determine label color based on background
+  function getContrastColor(backgroundColor) {
+    // Simple check for light vs dark purple/white/gray
+    return backgroundColor === '#FFFFFF' || 
+           backgroundColor.startsWith('#A') || 
+           backgroundColor.startsWith('#C') ||
+           backgroundColor.startsWith('#9') // Added base purple check
+           ? '#0B0B0B' // Dark text for light backgrounds
+           : '#FFFFFF'; // White text for dark backgrounds
+  }
+
+  // Load saved speed from localStorage
+  function loadSpeed() {
+    selectedSpeed = localStorage.getItem(SPEED_KEY) || 'medium';
+    updateSpeedControls();
+  }
 
   // Initial wheel setup with new purple color scheme
   const props = {
@@ -29,6 +49,7 @@ window.onload = () => {
     itemLabelColors: ['#0B0B0B', '#FFFFFF'], // Dark text on light segments, white on dark
     itemLabelFont: 'Segoe UI, sans-serif',
     itemLabelFontSizeMax: 40,
+    itemLabelRadius: 0.88, // Increased from default (likely 0.85) to move labels outwards
     borderColor: '#997BFF',
     borderWidth: 2,
     lineColor: '#8A6AE0',
@@ -43,6 +64,44 @@ window.onload = () => {
   const container = document.querySelector('.wheel-wrapper');
   wheel = new Wheel(container, props);
   window.wheel = wheel;
+
+  // Load saved options from localStorage and update wheel
+  function loadFromLocalStorage() {
+    let options = [];
+    try {
+      const savedOptions = localStorage.getItem(STORAGE_KEY);
+      options = savedOptions ? JSON.parse(savedOptions) : [];
+      if (!Array.isArray(options)) options = []; // Ensure it's an array
+    } catch (e) {
+      console.error('Error loading options from localStorage:', e);
+      options = [];
+    }
+
+    if (options.length === 0) {
+      // Initialize with default if localStorage is empty or invalid
+      options = [{ label: 'Add your options!', weight: 1 }];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(options));
+    }
+
+    // Update wheel items based on loaded options
+    wheel.items = options.map((opt, index) => ({
+      label: opt.label,
+      weight: opt.weight || 1, // Ensure weight is at least 1
+      backgroundColor: props.itemBackgroundColors[index % props.itemBackgroundColors.length],
+      labelColor: getContrastColor(props.itemBackgroundColors[index % props.itemBackgroundColors.length])
+    }));
+
+    updateOptionsDisplay(); // Update the list display as well
+  }
+
+  // Save current options (with weights) to localStorage
+  function saveToLocalStorage(optionsToSave) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(optionsToSave));
+    } catch (e) {
+      console.error('Error saving options to localStorage:', e);
+    }
+  }
 
   // Insert speed controls into the DOM
   const spinControls = document.querySelector('.spin-controls');
@@ -60,11 +119,22 @@ window.onload = () => {
   speedControls.querySelectorAll('.speed-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedSpeed = btn.getAttribute('data-speed');
+      localStorage.setItem(SPEED_KEY, selectedSpeed); // Save selected speed to localStorage
       speedControls.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active-speed'));
       btn.classList.add('active-speed');
       console.log('[Speed Control] selectedSpeed changed to:', selectedSpeed);
     });
   });
+
+  function updateSpeedControls() {
+    speedControls.querySelectorAll('.speed-btn').forEach(btn => {
+      btn.classList.remove('active-speed');
+      if (btn.getAttribute('data-speed') === selectedSpeed) {
+        btn.classList.add('active-speed');
+      }
+    });
+  }
+
   // Log initial selectedSpeed
   console.log('[Init] selectedSpeed:', selectedSpeed);
 
@@ -74,111 +144,148 @@ window.onload = () => {
   const optionsList = document.getElementById('optionsList');
   const resultDisplay = document.getElementById('resultDisplay');
   const spinBtn = document.getElementById('spinBtn');
+  const spinCenterBtn = document.getElementById('spinCenterBtn'); // Get the new center button
 
-  // Render the options list with weight input fields
+  // Update the options list display based on localStorage
   function updateOptionsDisplay() {
     optionsList.innerHTML = '';
     const template = document.getElementById('optionItemTemplate');
-    wheel.items.forEach((item, index) => {
-      const clone = template.content.cloneNode(true);
-      const labelSpan = clone.querySelector('.option-label');
-      labelSpan.textContent = item.label;
-      const weightInput = clone.querySelector('.option-weight');
-      weightInput.value = item.weight || 1;
-      weightInput.id = `probability-${index}`;
-      weightInput.addEventListener('input', (e) => {
-        let val = parseInt(e.target.value, 10);
-        if (isNaN(val) || val < 1) val = 1;
-        e.target.value = val;
-        // Only update the input, do NOT sync to item.weight for the wheel
-        // item.weight = val; // <-- DO NOT DO THIS
-        console.log(`[Weight Input] Option '${item.label}' input changed to:`, val);
-      });
-      const removeBtn = clone.querySelector('.remove-btn');
-      removeBtn.onclick = () => removeOption(index);
-      optionsList.appendChild(clone);
-    });
-    // Log the weights currently on the wheel (should always be 1 for equal segments)
-    console.log('[updateOptionsDisplay] wheel.items:', wheel.items.map(i => ({label: i.label, weight: i.weight})));
-    spinBtn.disabled = wheel.items.length < 2;
-  }
+    let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-  // Add a new option with alternating segment colors
-  function addOption() {
-    const newOption = optionInput.value.trim();
-    if (newOption) {
-      let newItems = [...wheel.items];
-      // Remove the default item if present
-      if (newItems.length === 1 && newItems[0].label === 'Add your options!') {
-        newItems = [];
-      }
-      const index = newItems.length;
-      const backgroundColor = props.itemBackgroundColors[index % props.itemBackgroundColors.length];
-      const labelColor = backgroundColor === '#FFFFFF' || backgroundColor.startsWith('#9') || backgroundColor.startsWith('#A') || backgroundColor.startsWith('#C') 
-        ? '#0B0B0B' 
-        : '#FFFFFF';
-      newItems.push({ 
-        label: newOption,
-        backgroundColor,
-        labelColor
-      });
-      wheel.items = newItems;
-      optionInput.value = '';
-      updateOptionsDisplay();
-    }
-  }
-
-  // Remove an option
-  function removeOption(index) {
-    if (wheel.items.length > 1) {
-      const newItems = [...wheel.items];
-      newItems.splice(index, 1);
-      wheel.items = newItems;
-      updateOptionsDisplay();
+    if (options.length === 1 && options[0].label === 'Add your options!') {
+        // Don't display the placeholder in the list
     } else {
-      alert('You must keep at least one option!');
+        options.forEach((item, index) => {
+          const clone = template.content.cloneNode(true);
+          const labelSpan = clone.querySelector('.option-label');
+          labelSpan.textContent = item.label;
+          
+          // Remove the weight display logic
+          /*
+          const weightDisplay = document.createElement('span');
+          weightDisplay.className = 'weight-display';
+          // Display the weight fetched from localStorage
+          weightDisplay.textContent = `Weight: ${item.weight || 1}`;
+          */
+          
+          const removeBtn = clone.querySelector('.remove-btn');
+          removeBtn.onclick = () => removeOption(index);
+          
+          // Remove the placeholder replacement logic if it exists
+          const weightContainer = clone.querySelector('.weight-container');
+          if (weightContainer) {
+            // weightContainer.replaceWith(weightDisplay); // Don't replace with weight
+            weightContainer.remove(); // Remove the weight container placeholder if it exists
+          }
+          /* else {
+            // If no weight-container placeholder, attempt to remove the weight display if it was added differently
+            const existingWeightDisplay = clone.querySelector('.weight-display');
+            if (existingWeightDisplay) {
+                existingWeightDisplay.remove();
+            }
+          } */
+          
+          optionsList.appendChild(clone);
+        });
+    }
+    spinBtn.disabled = options.length < 2 || (options.length === 1 && options[0].label === 'Add your options!');
+  }
+
+  // Add a new option to localStorage
+  function addOption() {
+    const newOptionLabel = optionInput.value.trim();
+    if (newOptionLabel) {
+      let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+      // Remove placeholder if it exists
+      if (options.length === 1 && options[0].label === 'Add your options!') {
+        options = [];
+      }
+
+      // Add the new option with default weight 1
+      options.push({ 
+        label: newOptionLabel,
+        weight: 1 
+      });
+      
+      saveToLocalStorage(options);
+      loadFromLocalStorage(); // Reload wheel and update display from storage
+      optionInput.value = '';
     }
   }
 
-  // Spin the wheel
+  // Remove an option from localStorage
+  function removeOption(index) {
+    let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    
+    if (options.length > 1) {
+      options.splice(index, 1);
+      saveToLocalStorage(options);
+      loadFromLocalStorage(); // Reload wheel and update display from storage
+    } else if (options.length === 1 && options[0].label !== 'Add your options!') {
+        // If removing the last real option, replace with placeholder
+        options = [{ label: 'Add your options!', weight: 1 }];
+        saveToLocalStorage(options);
+        loadFromLocalStorage();
+    } else {
+      alert('Cannot remove the placeholder option.');
+    }
+  }
+
+  // Spin the wheel based on weights from localStorage
   function spinWheel() {
     console.log('[SpinWheel] Called. Current selectedSpeed:', selectedSpeed);
     spinBtn.disabled = true;
-    // Build weighted array using integer weights from input fields only
+    spinCenterBtn.disabled = true; // Disable center button too
+    resultDisplay.textContent = ''; // Clear previous result
+    resultDisplay.classList.remove('show'); // Hide result display
+    if (typeof wheel.stopGlow === 'function') wheel.stopGlow(); // Stop previous glow
+
+    // Fetch options directly from localStorage for weighted calculation
+    let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    // Filter out placeholder if present
+    options = options.filter(opt => opt.label !== 'Add your options!');
+
+    if (options.length < 2) {
+        alert('Please add at least two options to spin!');
+        spinBtn.disabled = false;
+        spinCenterBtn.disabled = false; // Re-enable center button on error
+        return;
+    }
+
     const weightedArray = [];
-    wheel.items.forEach((item, index) => {
-      const weightInput = document.getElementById(`probability-${index}`);
-      let weight = parseInt(weightInput?.value || '1', 10);
-      if (isNaN(weight) || weight < 1) weight = 1;
-      // DO NOT update item.weight here!
-      // item.weight = weight; // <-- DO NOT DO THIS
-      for (let i = 0; i < weight; i++) {
+    options.forEach((item) => {
+      const weight = parseInt(item.weight || '1', 10);
+      const effectiveWeight = isNaN(weight) || weight < 1 ? 1 : weight;
+      for (let i = 0; i < effectiveWeight; i++) {
         weightedArray.push(item.label);
       }
-      console.log(`[spinWheel] Option '${item.label}' input weight:`, weight);
+      console.log(`[spinWheel] Option '${item.label}' effective weight:`, effectiveWeight);
     });
-    // Log the weights currently on the wheel (should always be 1 for equal segments)
-    console.log('[spinWheel] wheel.items before spin:', wheel.items.map(i => ({label: i.label, weight: i.weight})));
+
     if (weightedArray.length === 0) {
-      resultDisplay.textContent = 'No valid options to spin!';
+      resultDisplay.textContent = 'No valid options with weights to spin!';
       spinBtn.disabled = false;
+      spinCenterBtn.disabled = false; // Re-enable center button on error
       return;
     }
-    // Shuffle the array
+
+    // Shuffle and pick winner
     for (let i = weightedArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [weightedArray[i], weightedArray[j]] = [weightedArray[j], weightedArray[i]];
     }
-    // Pick a random winner label
     const winnerLabel = weightedArray[Math.floor(Math.random() * weightedArray.length)];
-    // Find the index of the winner in the wheel items
+    
+    // Find the index of the winner in the *current wheel items* for spinToItem
     const winnerIndex = wheel.items.findIndex(item => item.label === winnerLabel);
+
     if (winnerIndex !== -1) {
-      wheel.highlightIndex = null;
-      if (typeof wheel.stopGlow === 'function') wheel.stopGlow();
-      // Use selectedSpeed to determine spin duration and revolutions
-      let duration = 10000; // default 10 seconds
-      let revolutions = 3; // default for slow
+      wheel.highlightIndex = null; // Reset highlight
+      
+      let duration = 10000;
+      let revolutions = 3;
       if (selectedSpeed === 'slow') {
         duration = 12000;
         revolutions = 3;
@@ -189,99 +296,38 @@ window.onload = () => {
         duration = 7000;
         revolutions = 9;
       }
-      console.log('[Spin] selectedSpeed:', selectedSpeed, '| duration:', duration, '| revolutions:', revolutions);
+      console.log('[Spin] selectedSpeed:', selectedSpeed, '| duration:', duration, '| revolutions:', revolutions, '| winnerIndex:', winnerIndex);
+      
+      // Spin the visual wheel to the determined winner index
       wheel.spinToItem(winnerIndex, duration, true, revolutions);
+      
+      // Set onRest callback for when the spin animation finishes
       wheel.onRest = () => {
-        wheel.highlightIndex = winnerIndex;
-        if (typeof wheel.startGlow === 'function') wheel.startGlow();
+        console.log('Spin finished. Winner:', winnerLabel);
+        wheel.highlightIndex = winnerIndex; // Highlight the winner segment
         resultDisplay.textContent = `Winner: ${winnerLabel}`;
-        spinBtn.disabled = false;
+        resultDisplay.classList.add('show'); // Show and animate result display
+        spinBtn.disabled = false; // Re-enable spin button
+        spinCenterBtn.disabled = false; // Re-enable center button
       };
     } else {
-      resultDisplay.textContent = 'Winner not found!';
+      console.error('Winner label not found in current wheel items:', winnerLabel);
+      resultDisplay.textContent = 'Error determining winner!';
       spinBtn.disabled = false;
+      spinCenterBtn.disabled = false; // Re-enable center button on error
     }
   }
 
-  // Revised handleSpinComplete function in index.js
+  // Revised handleSpinComplete function in index.js - now handled by onRest in spinWheel
   function handleSpinComplete(event) {
-    console.log('handleSpinComplete triggered. Event:', event); // Debug log
-
-    const winnerIndex = event.currentIndex;
-
-    if (winnerIndex === undefined || winnerIndex === null || winnerIndex < 0) {
-         console.error('Invalid winnerIndex received in handleSpinComplete:', winnerIndex);
-         if (spinBtn) spinBtn.disabled = false;
-         return;
-    }
-
-    if (!wheel || !wheel.items || winnerIndex >= wheel.items.length) {
-         console.error('Wheel object or items array is invalid, or winnerIndex out of bounds.');
-         if (spinBtn) spinBtn.disabled = false;
-         return;
-    }
-
-    const winnerItem = wheel.items[winnerIndex];
-    if (!winnerItem) {
-        console.error('Could not find winner item for index:', winnerIndex);
-        if (spinBtn) spinBtn.disabled = false;
-        return;
-    }
-
-    const winnerLabel = winnerItem.label || `Item ${winnerIndex + 1}`;
-    if (resultDisplay) {
-        resultDisplay.textContent = `Winner: ${winnerLabel}`;
-        resultDisplay.classList.add('show');
-    }
-
-    // --- DETAILED CHECK for startGlow method ---
-    wheel.highlightIndex = winnerIndex; // Set the index first
-    console.log('Checking wheel object just before calling startGlow:', wheel);
-
-    if (wheel && typeof wheel.startGlow === 'function') {
-        // Method exists, call it
-        console.log('startGlow method FOUND on wheel object. Calling it...');
-        wheel.startGlow();
-    } else {
-        // Method does NOT exist
-        console.error('startGlow method NOT FOUND on wheel object!');
-        // Log available keys to see what *is* available
-        if (wheel) {
-             console.log('Available keys on wheel object:', Object.keys(wheel));
-             // Also check the prototype if possible
-             if (Object.getPrototypeOf(wheel)) {
-                 console.log('Available keys on wheel prototype:', Object.keys(Object.getPrototypeOf(wheel)));
-             }
-        } else {
-            console.error('The wheel variable itself is invalid here.');
-        }
-    }
-    // --- END OF DETAILED CHECK ---
-
-    // Re-enable spin button
-    if (spinBtn) spinBtn.disabled = false;
-
-    // Stop glow and remove highlight after 3 seconds
-    if (stopGlowTimeoutId) clearTimeout(stopGlowTimeoutId);
-    stopGlowTimeoutId = setTimeout(() => {
-        console.log('Stopping glow and removing highlight.');
-        if (wheel) {
-             wheel.highlightIndex = null;
-             // Call stopGlow only if it exists (though it should if startGlow does)
-             if (typeof wheel.stopGlow === 'function') {
-                 wheel.stopGlow();
-             } else {
-                  console.error('stopGlow method not found during cleanup!');
-                  // Might need to manually call refresh if stopGlow is missing
-                  // wheel.refresh();
-             }
-        }
-    }, 3000);
+      // This can be kept minimal or removed if all logic is in spinWheel's onRest
+      console.log('Wheel rested at index:', event.currentIndex);
   }
 
   // Event Listeners
   addOptionBtn.addEventListener('click', addOption);
   spinBtn.addEventListener('click', spinWheel);
+  spinCenterBtn.addEventListener('click', spinWheel); // Add listener for center button
   optionInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -289,6 +335,7 @@ window.onload = () => {
     }
   });
 
-  // Initial display update
-  updateOptionsDisplay();
+  // Initialize
+  loadSpeed();
+  loadFromLocalStorage(); // Load options from storage on initial load
 };

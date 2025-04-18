@@ -155,17 +155,45 @@ export class Wheel {
     // Calculate the wheel radius:
     this._actualRadius = (this._size / 2) * this.radius;
 
-    // Adjust the font size of labels so they all fit inside the wheel's radius:
-    this._itemLabelFontSize = this.itemLabelFontSizeMax * (this._size / Constants.baseCanvasSize);
-    this._labelMaxWidth = this._actualRadius * (this.itemLabelRadius - this.itemLabelRadiusMax);
+    // Calculate the base font size relative to wheel size
+    let baseFontSize = this.itemLabelFontSizeMax * (this._size / Constants.baseCanvasSize);
+    let minFontSize = baseFontSize; // Start with the calculated base size
 
-    if (this.itemLabelAlign === 'center') {
-      this._labelMaxWidth *= 2;
-    }
+    // Calculate segment angle
+    const segmentAngleRad = this._items.length > 0 ? (2 * Math.PI) / this._items.length : 2 * Math.PI;
+    // Calculate the radius where labels are drawn
+    const labelDrawRadius = this._actualRadius * this.itemLabelRadius;
+    // Calculate the maximum radius for labels
+    const labelMaxRadius = this._actualRadius * this.itemLabelRadiusMax;
+    // Calculate the radial distance available for the label
+    const radialLabelHeight = labelMaxRadius - labelDrawRadius;
 
+    // Iterate through items to find the minimum required font size
     for (const item of this._items) {
-      this._itemLabelFontSize = Math.min(this._itemLabelFontSize, util.getFontSizeToFit(item.label, this.itemLabelFont, this._labelMaxWidth, this._context));
+      if (!item.label) continue;
+
+      // Estimate max width based on arc length at the label's radius
+      // Subtract some padding (e.g., 10% of radius or a fixed pixel value scaled)
+      const padding = this.getScaledNumber(10); // Example padding
+      let arcWidth = (labelDrawRadius * segmentAngleRad) - padding;
+
+      // Consider alignment: center allows roughly double the width if text flows from center
+      // if (this.itemLabelAlign === 'center') {
+      //   arcWidth *= 1.8; // Allow more width for centered text (approximation)
+      // }
+
+      // Ensure minimum width to prevent issues with very small segments
+      arcWidth = Math.max(arcWidth, this.getScaledNumber(20)); // Minimum 20px scaled width
+
+      // Calculate font size needed for this item
+      const requiredFontSize = util.getFontSizeToFit(item.label, this.itemLabelFont, arcWidth, this._context);
+
+      // Keep track of the smallest font size needed
+      minFontSize = Math.min(minFontSize, requiredFontSize);
     }
+
+    // Apply the minimum font size found, but don't go below a reasonable minimum (e.g., 8px scaled)
+    this._itemLabelFontSize = Math.max(minFontSize, this.getScaledNumber(8));
 
     this.refresh();
 
@@ -449,7 +477,6 @@ export class Wheel {
         ctx.lineWidth = 4;
         ctx.strokeText(item.label, 0, this._itemLabelFontSize * -this.itemLabelBaselineOffset);
         ctx.fillStyle = '#FFD700';
-        ctx.fillText('★', 0, -this._itemLabelFontSize * 1.1); // Star above label
       }
 
       if (this._itemLabelStrokeWidth > 0) {
@@ -734,35 +761,42 @@ export class Wheel {
    * Return an array of objects containing the start angle (inclusive) and end angle (inclusive) of each item.
    */
   getItemAngles(initialRotation = 0) {
+    console.log('[getItemAngles] Calculating angles. Initial rotation:', initialRotation);
+    console.log('[getItemAngles] Items:', this._items.map(i => ({ label: i.label, weight: i.weight })));
 
-    let weightSum = 0;
-    for (const i of this.items) {
-      weightSum += i.weight;
+    if (this.items.length === 0) {
+        console.log('[getItemAngles] No items, returning empty array.');
+        return [];
     }
-    const weightedItemAngle = 360 / weightSum;
 
-    let itemAngle;
+    // Equal visual segments
+    const itemAngle = 360 / this.items.length;
+    console.log(`[getItemAngles] Calculated equal angle per item: ${itemAngle} (360 / ${this.items.length})`);
+
     let lastItemAngle = initialRotation;
     const angles = [];
 
-    for (const item of this._items) {
-      itemAngle = item.weight * weightedItemAngle;
+    for (const [index, item] of this._items.entries()) {
       angles.push({
         start: lastItemAngle,
         end: lastItemAngle + itemAngle,
       });
+      console.log(`[getItemAngles] Item ${index} ('${item.label}'): Start=${lastItemAngle.toFixed(2)}, End=${(lastItemAngle + itemAngle).toFixed(2)}`);
       lastItemAngle += itemAngle;
     }
 
     // Ensure the difference between last angle.end and first angle.start is exactly 360 degrees.
-    // Sometimes floating point arithmetic pushes the end value past 360 degrees by
-    // a very small amount, which causes issues when calculating `currentIndex`.
     if (this._items.length > 1) {
-      angles[angles.length - 1].end = angles[0].start + 360;
+      const lastIndex = angles.length - 1;
+      const expectedEnd = angles[0].start + 360;
+      if (angles[lastIndex].end !== expectedEnd) {
+          console.warn(`[getItemAngles] Adjusting last item's end angle from ${angles[lastIndex].end.toFixed(2)} to ${expectedEnd.toFixed(2)} for precision.`);
+          angles[lastIndex].end = expectedEnd;
+      }
     }
 
+    console.log('[getItemAngles] Final calculated angles:', angles.map(a => ({ start: a.start.toFixed(2), end: a.end.toFixed(2) })));
     return angles;
-
   }
 
   /**
