@@ -262,24 +262,38 @@ export class Wheel {
   drawItemBackgrounds(ctx, angles = []) {
     for (const [i, item] of this._items.entries()) {
       ctx.save();
+
+      // Set the background color of the segments
       ctx.fillStyle = item.backgroundColor ?? this._itemBackgroundColors[i % this._itemBackgroundColors.length];
+
       if (item.path instanceof Path2D) {
         ctx.fill(item.path);
       } else {
         ctx.restore();
         continue;
       }
-      // Pulsing glow effect for the winning segment
+
+      // --- Pulsing Glow Effect for Winning Segment ---
       if (this._isGlowActive && this.highlightIndex === i) {
-        const pulse = Math.sin(this._glowPulseValue);
-        const pulseIntensity = (pulse + 1) / 2;
+        const now = performance.now();
+        const pulseCycle = (now % 2000) / 2000; // Create a smooth pulse cycle (2 seconds)
+        const pulse = Math.sin(pulseCycle * Math.PI * 2); // Pulse between -1 and 1
+        const pulseIntensity = (pulse + 1) / 2; // Map to 0-1 range for smooth glowing
+
+        // Dynamically adjust shadow color based on pulse (e.g., white to lavender)
+        const shadowColor = `rgb(${Math.floor(255 * pulseIntensity)}, ${Math.floor(255 * (1 - pulseIntensity))}, 255)`;
+
+        // Apply the glowing shadow effect to the winning segment
         ctx.save();
-        ctx.shadowBlur = 5 + pulseIntensity * 20;
-        ctx.shadowColor = '#fff';
-        ctx.globalAlpha = 0.7 + 0.3 * pulseIntensity;
+        ctx.shadowBlur = 15 + pulseIntensity * 40; // Increased blur for stronger glow
+        ctx.shadowColor = shadowColor;
+        ctx.globalAlpha = 0.6 + pulseIntensity * 0.4; // Gradually change opacity
+
+        // Fill the segment path with the glow effect
         ctx.fill(item.path);
         ctx.restore();
       }
+
       ctx.restore();
     }
   }
@@ -902,6 +916,44 @@ export class Wheel {
     ctx.fill();
     ctx.stroke();
     ctx.restore();
+  }
+
+  /**
+   * Add glow effect to the winning segment.
+   */
+  addGlowToWinningSegment(winningIndex) {
+    const canvas = this.canvas;
+    const ctx = canvas.getContext('2d');
+    const segment = this.segments[winningIndex];
+
+    if (!segment) {
+      console.error('Winning segment not found');
+      return;
+    }
+
+    const { startAngle, endAngle } = segment;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.lineTo(centerX, centerY);
+    ctx.closePath();
+
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.8)'; // Gold glow
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.3)'; // Semi-transparent gold
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
+   * Highlight the winning segment after the wheel stops spinning.
+   */
+  highlightWinningSegment(winningIndex) {
+    this.addGlowToWinningSegment(winningIndex);
   }
 
   /**

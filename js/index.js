@@ -79,14 +79,14 @@ window.onload = () => {
 
     if (options.length === 0) {
       // Initialize with default if localStorage is empty or invalid
-      options = [{ label: 'Add your options!', weight: 1 }];
+      options = [{ label: 'Add your options!', weight: 0 }];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(options));
     }
 
     // Update wheel items based on loaded options
     wheel.items = options.map((opt, index) => ({
       label: opt.label,
-      weight: opt.weight || 1, // Ensure weight is at least 1
+      weight: opt.weight || 0, // Ensure weight is at least 1
       backgroundColor: props.itemBackgroundColors[index % props.itemBackgroundColors.length],
       labelColor: getContrastColor(props.itemBackgroundColors[index % props.itemBackgroundColors.length])
     }));
@@ -224,7 +224,7 @@ window.onload = () => {
       loadFromLocalStorage(); // Reload wheel and update display from storage
     } else if (options.length === 1 && options[0].label !== 'Add your options!') {
         // If removing the last real option, replace with placeholder
-        options = [{ label: 'Add your options!', weight: 1 }];
+        options = [{ label: 'Add your options!', weight: 0 }];
         saveToLocalStorage(options);
         loadFromLocalStorage();
     } else {
@@ -256,7 +256,7 @@ window.onload = () => {
 
     const weightedArray = [];
     options.forEach((item) => {
-      const weight = parseInt(item.weight || '1', 10);
+      const weight = parseInt(item.weight || '0', 10);
       const effectiveWeight = isNaN(weight) || weight < 1 ? 1 : weight;
       for (let i = 0; i < effectiveWeight; i++) {
         weightedArray.push(item.label);
@@ -305,6 +305,7 @@ window.onload = () => {
       wheel.onRest = () => {
         console.log('Spin finished. Winner:', winnerLabel);
         wheel.highlightIndex = winnerIndex; // Highlight the winner segment
+        wheel.startGlow(); // Start the glow effect for the winning segment
         resultDisplay.textContent = `Winner: ${winnerLabel}`;
         resultDisplay.classList.add('show'); // Show and animate result display
         spinBtn.disabled = false; // Re-enable spin button
