@@ -460,6 +460,18 @@ export class Wheel {
 
     // Determine if the wheel is stable (not spinning)
     const isStable = this._rotationSpeed === 0 && this._spinToTimeEnd === null && this._lastSpinFrameTime === null;
+    const numOptions = this._items.length;
+
+    // Dynamic scaling factor based on number of options
+    // For more than 10 options, increase the scale slightly for better visibility
+    let scale = 1.0;
+    if (numOptions <= 3) scale = 1.05;
+    else if (numOptions <= 5) scale = 1.0;
+    else if (numOptions <= 8) scale = 0.92;
+    else if (numOptions <= 10) scale = 0.85;
+    else if (numOptions <= 14) scale = 0.80;
+    else if (numOptions <= 20) scale = 0.75;
+    else scale = 0.70;
 
     for (const [i, a] of angles.entries()) {
       const item = this._items[i];
@@ -477,21 +489,21 @@ export class Wheel {
       ctx.rotate(util.degRad(this.itemLabelRotation));
       // Highlight label for winner
       if (this.highlightIndex === i) {
-        ctx.font = `bold ${this._itemLabelFontSize * 1.25}px ${this._itemLabelFont}`;
+        ctx.font = `bold ${this._itemLabelFontSize * 1.15 * scale}px ${this._itemLabelFont}`;
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 4;
         ctx.strokeText(item.label, 0, this._itemLabelFontSize * -this.itemLabelBaselineOffset);
         ctx.fillStyle = '#FFD700';
       }
-      // --- Make text bigger and more visible ---
       let displayLabel = item.label;
-      if (displayLabel.length > 100) {
-        displayLabel = displayLabel.slice(0, 50) + '..........';
+      if (displayLabel.length > 30) {
+        displayLabel = displayLabel.slice(0, 30) + '....';
       }
+      // --- Dynamically scale text size based on number of options ---
       if (isStable) {
-        ctx.font = `bold ${this._itemLabelFontSize * 1.35}px ${this._itemLabelFont}`;
+        ctx.font = `bold ${this._itemLabelFontSize * 1.18 * scale}px ${this._itemLabelFont}`;
       } else {
-        ctx.font = `bold ${this._itemLabelFontSize * 1.15}px ${this._itemLabelFont}`;
+        ctx.font = `bold ${this._itemLabelFontSize * 0.98 * scale}px ${this._itemLabelFont}`;
       }
       if (this._itemLabelStrokeWidth > 0) {
         ctx.lineWidth = actualLabelStrokeWidth;
