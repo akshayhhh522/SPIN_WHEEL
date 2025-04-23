@@ -9,7 +9,21 @@
 
 html, body {
   height: 100%;
-  background-color: #000000;
+  background: linear-gradient(135deg, #221a36 0%, #3a2d6d 60%, #997BFF 100%);
+  background-attachment: fixed;
+  background-color: #221a36;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 80% 10%, rgba(153,123,255,0.10) 0%, rgba(58,45,109,0.0) 70%),
+    radial-gradient(ellipse at 20% 80%, rgba(168,143,255,0.08) 0%, rgba(58,45,109,0.0) 70%),
+    linear-gradient(120deg, rgba(168,143,255,0.06) 0%, rgba(249,193,213,0.04) 100%);
 }
 
 body {
@@ -88,6 +102,18 @@ h3 {
   align-items: center;
   border: 1px solid #333333;
   transition: all 0.3s ease;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.option-label {
+  flex: 1 1 0;
+  min-width: 0;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  display: block;
 }
 
 #optionsList li:hover {
@@ -102,6 +128,8 @@ h3 {
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 #optionsList button:hover {
@@ -113,16 +141,42 @@ h3 {
   flex: 1;
   overflow: hidden;
   position: relative;
-  background: #000000;
+  background: linear-gradient(120deg, #221a36 0%, #3a2d6d 60%, #997BFF 100%);
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+.center-logo-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 22;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.center-logo-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #221a36;
+  border: 2.5px solid #997BFF;
+  pointer-events: none;
+  box-shadow: none;
+}
+
 /* Style for the center spin button */
 .spin-button-center {
-  position: absolute; /* Position relative to the wheel-wrapper */
-  z-index: 10; /* Ensure it's above the canvas */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateY(55px);
+  z-index: 21;
   width: 80px; /* Adjust size as needed */
   height: 80px;
   border-radius: 50%; /* Make it circular */
@@ -148,6 +202,32 @@ h3 {
 .spin-button-center:active {
   transform: scale(0.98);
   filter: brightness(0.9);
+}
+
+.spin-button-center.center-logo-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 21;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  box-shadow: 0 4px 16px rgba(153,123,255,0.18), 0 2px 8px 0 rgba(90,200,250,0.10);
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.spin-button-center.center-logo-btn:hover,
+.spin-button-center.center-logo-btn:focus {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 8px 32px rgba(153,123,255,0.28);
 }
 
 /* Style for the Save Weights button */
@@ -262,6 +342,45 @@ spin-button:disabled {
     color: var(--stan-text-dark, #0B0B0B);
     border-color: var(--stan-accent-darker, #8A6AE0);
     font-weight: bold;
+}
+
+#historySection {
+  margin-top: 24px;
+  padding: 16px 12px 12px 12px;
+  background: #181828;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px 0 rgba(80, 80, 120, 0.08);
+  border: 1px solid #282848;
+  border-top: 2px solid #997BFF;
+}
+
+#historySection h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1em;
+  color: #a88fff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+#winnerHistoryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+#winnerHistoryList li {
+  padding: 7px 0 7px 0;
+  border-bottom: 1px solid #23233a;
+  color: #e0e0ff;
+  font-size: 1em;
+  letter-spacing: 0.2px;
+  transition: background 0.2s;
+}
+
+#winnerHistoryList li:last-child {
+  border-bottom: none;
 }
 
 /* --- Responsive Styles --- */

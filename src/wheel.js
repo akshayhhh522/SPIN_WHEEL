@@ -454,68 +454,62 @@ export class Wheel {
   }
 
   drawItemLabels(ctx, angles = []) {
-
     const actualItemLabelBaselineOffset = this._itemLabelFontSize * -this.itemLabelBaselineOffset;
     const actualDebugLineWidth = this.getScaledNumber(1);
     const actualLabelStrokeWidth = this.getScaledNumber(this._itemLabelStrokeWidth * 2);
 
+    // Determine if the wheel is stable (not spinning)
+    const isStable = this._rotationSpeed === 0 && this._spinToTimeEnd === null && this._lastSpinFrameTime === null;
+
     for (const [i, a] of angles.entries()) {
-
       const item = this._items[i];
-
       const actualLabelColor = item.labelColor
-        || (this._itemLabelColors[i % this._itemLabelColors.length] // Fall back to a value from the repeating set.
-        || 'transparent'); // Handle empty string/undefined.
-
+        || (this._itemLabelColors[i % this._itemLabelColors.length] || 'transparent');
       if (item.label.trim() === '' || actualLabelColor === 'transparent') continue;
-
       ctx.save();
-
       ctx.clip(item.path);
-
       const angle = a.start + ((a.end - a.start) / 2);
-
       ctx.translate(
         this._center.x + Math.cos(util.degRad(angle + Constants.arcAdjust)) * (this._actualRadius * this.itemLabelRadius),
         this._center.y + Math.sin(util.degRad(angle + Constants.arcAdjust)) * (this._actualRadius * this.itemLabelRadius)
       );
-
       ctx.rotate(util.degRad(angle + Constants.arcAdjust));
-
       ctx.rotate(util.degRad(this.itemLabelRotation));
-
       // Highlight label for winner
       if (this.highlightIndex === i) {
-        ctx.font = `bold ${this._itemLabelFontSize * 1.15}px ${this._itemLabelFont}`;
+        ctx.font = `bold ${this._itemLabelFontSize * 1.25}px ${this._itemLabelFont}`;
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 4;
         ctx.strokeText(item.label, 0, this._itemLabelFontSize * -this.itemLabelBaselineOffset);
         ctx.fillStyle = '#FFD700';
       }
-
+      // --- Make text bigger and more visible ---
+      let displayLabel = item.label;
+      if (displayLabel.length > 100) {
+        displayLabel = displayLabel.slice(0, 50) + '..........';
+      }
+      if (isStable) {
+        ctx.font = `bold ${this._itemLabelFontSize * 1.35}px ${this._itemLabelFont}`;
+      } else {
+        ctx.font = `bold ${this._itemLabelFontSize * 1.15}px ${this._itemLabelFont}`;
+      }
       if (this._itemLabelStrokeWidth > 0) {
         ctx.lineWidth = actualLabelStrokeWidth;
         ctx.strokeStyle = this._itemLabelStrokeColor;
         ctx.lineJoin = 'round';
-        ctx.strokeText(item.label, 0, actualItemLabelBaselineOffset);
+        ctx.strokeText(displayLabel, 0, actualItemLabelBaselineOffset);
       }
-
       ctx.fillStyle = actualLabelColor;
-      ctx.fillText(item.label, 0, actualItemLabelBaselineOffset);
-
+      ctx.fillText(displayLabel, 0, actualItemLabelBaselineOffset);
       if (this.debug) {
-        // Draw label anchor point
         const circleDiameter = this.getScaledNumber(2);
         ctx.beginPath();
         ctx.arc(0, 0, circleDiameter, 0, 2 * Math.PI);
         ctx.fillStyle = Constants.Debugging.labelRadiusColor;
         ctx.fill();
       }
-
       ctx.restore();
-
     }
-
   }
 
   drawDebugDragPoints(ctx) {
@@ -628,7 +622,6 @@ export class Wheel {
    * For example easing functions see [easing-utils](https://github.com/AndrewRayCode/easing-utils).
    */
   spinTo(rotation = 0, duration = 0, easingFunction = null) {
-    console.log('[Wheel.spinTo] rotation:', rotation, '| duration:', duration);
     if (!util.isNumber(rotation)) throw new Error('Error: rotation must be a number');
     if (!util.isNumber(duration)) throw new Error('Error: duration must be a number');
     this.stop();
@@ -648,7 +641,6 @@ export class Wheel {
    * For example easing functions see [easing-utils](https://github.com/AndrewRayCode/easing-utils).
    */
   spinToItem(itemIndex = 0, duration = 0, spinToCenter = true, numberOfRevolutions = 1, direction = 1, easingFunction = null) {
-    console.log('[Wheel.spinToItem] itemIndex:', itemIndex, '| duration:', duration, '| spinToCenter:', spinToCenter, '| numberOfRevolutions:', numberOfRevolutions, '| direction:', direction);
     this.stop();
     this._dragEvents = [];
     const itemAngle = spinToCenter ? this.items[itemIndex].getCenterAngle() : this.items[itemIndex].getRandomAngle();
@@ -671,8 +663,6 @@ export class Wheel {
    * Immediately stop the wheel from spinning, regardless of which method was used to spin it.
    */
   stop() {
-    console.log('wheel.stop() method called'); // <<< ADD THIS LINE
-
     // Track if we need to raise the onRest event
     const wasSpin = this._lastSpinFrameTime !== null;
 
@@ -775,18 +765,12 @@ export class Wheel {
    * Return an array of objects containing the start angle (inclusive) and end angle (inclusive) of each item.
    */
   getItemAngles(initialRotation = 0) {
-    console.log('[getItemAngles] Calculating angles. Initial rotation:', initialRotation);
-    console.log('[getItemAngles] Items:', this._items.map(i => ({ label: i.label, weight: i.weight })));
-
     if (this.items.length === 0) {
-        console.log('[getItemAngles] No items, returning empty array.');
         return [];
     }
 
     // Equal visual segments
     const itemAngle = 360 / this.items.length;
-    console.log(`[getItemAngles] Calculated equal angle per item: ${itemAngle} (360 / ${this.items.length})`);
-
     let lastItemAngle = initialRotation;
     const angles = [];
 
@@ -795,7 +779,6 @@ export class Wheel {
         start: lastItemAngle,
         end: lastItemAngle + itemAngle,
       });
-      console.log(`[getItemAngles] Item ${index} ('${item.label}'): Start=${lastItemAngle.toFixed(2)}, End=${(lastItemAngle + itemAngle).toFixed(2)}`);
       lastItemAngle += itemAngle;
     }
 
@@ -804,12 +787,10 @@ export class Wheel {
       const lastIndex = angles.length - 1;
       const expectedEnd = angles[0].start + 360;
       if (angles[lastIndex].end !== expectedEnd) {
-          console.warn(`[getItemAngles] Adjusting last item's end angle from ${angles[lastIndex].end.toFixed(2)} to ${expectedEnd.toFixed(2)} for precision.`);
           angles[lastIndex].end = expectedEnd;
       }
     }
 
-    console.log('[getItemAngles] Final calculated angles:', angles.map(a => ({ start: a.start.toFixed(2), end: a.end.toFixed(2) })));
     return angles;
   }
 
@@ -1594,7 +1575,6 @@ export class Wheel {
   }
 
   raiseEvent_onRest(data = {}) {
-    console.log('raiseEvent_onRest() called'); // <<< ADD THIS LINE
     this.onRest?.({
       type: 'rest',
       currentIndex: this._currentIndex,
