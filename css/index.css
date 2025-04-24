@@ -44,7 +44,9 @@ body {
 .controls-wrapper {
   padding: 32px 24px 20px 24px;
   background-color: #1A1A1A;
-  width: 300px;
+  width: 350px;
+  max-width: 100vw;
+  box-sizing: border-box;
   overflow-y: auto;
   border-right: 1px solid #333333;
   border-radius: 15px;
@@ -124,6 +126,10 @@ h3 {
 #optionsList {
   list-style: none;
   margin: 16px 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 #optionsList li {
@@ -490,12 +496,9 @@ spin-button:disabled {
 
   .controls-wrapper {
     width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #333333;
-    box-sizing: border-box; /* Include padding in width */
-    height: auto; /* Adjust height based on content */
-    overflow-y: visible; /* Allow content to scroll with page */
-    order: 1; /* Make controls appear second */
+    max-width: 100vw;
+    margin: 16px 0 16px 0;
+    border-radius: 0 0 15px 15px;
   }
 
   .wheel-wrapper {
@@ -513,6 +516,36 @@ spin-button:disabled {
   .options-input button,
   .spin-button {
     padding: 10px 15px; /* Adjust button padding */
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    flex-direction: column;
+    position: relative;
+    height: auto;
+    touch-action: auto;
+    overscroll-behavior-y: auto;
+  }
+  .wheel-wrapper {
+    order: 0;
+    width: 100%;
+    min-height: 60vh;
+    border-radius: 0 0 28px 28px;
+    margin: 0;
+  }
+  .controls-wrapper {
+    order: 1;
+    width: 100%;
+    max-width: 100vw;
+    margin: 0;
+    border-radius: 0 0 15px 15px;
+    border-right: none;
+    border-top: 1px solid #333333;
+  }
+  #optionsList {
+    width: 100%;
+    max-width: 100vw;
   }
 }
 

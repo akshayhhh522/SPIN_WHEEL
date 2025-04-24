@@ -296,12 +296,13 @@ window.onload = () => {
       const numSegments = wheel.items.length;
       const duration = baseDuration + numSegments * 300; // Even longer for more segments
       const revolutions = baseRevolutions + Math.floor(numSegments / 3); // More revolutions for more segments
-      wheel.spinToItem(winnerIndex, duration, true, revolutions, 1, easing.cubicOut);
+      wheel.spinToItem(winnerIndex, duration, false, revolutions, 1, easing.quinticOut);
       
       wheel.onRest = () => {
-        console.log('Spin finished. Winner:', winnerLabel);
-        wheel.highlightIndex = winnerIndex; 
-        wheel.startGlow(); 
+        console.log('[onRest] Spin finished. Winner:', winnerLabel, 'at', Date.now());
+        wheel.highlightIndex = winnerIndex;
+        console.log('[onRest] Calling startGlow at', Date.now());
+        wheel.startGlow();
         resultDisplay.textContent = `Winner: ${winnerLabel}`;
         resultDisplay.classList.add('show'); 
         addWinnerToHistory(winnerLabel);

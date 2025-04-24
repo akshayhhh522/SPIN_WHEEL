@@ -1494,7 +1494,8 @@ export class Wheel {
    * Enter the drag state.
    */
   dragStart(point = {x: 0, y: 0}) {
-
+    // Disable drag if a protected spin is in progress
+    if (this._isProtectedSpin) return;
     if (this.canvas === null) return;
 
     const p = util.translateXYToElement(point, this.canvas, this.getActualPixelRatio());
