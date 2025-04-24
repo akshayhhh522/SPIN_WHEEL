@@ -262,24 +262,38 @@ export class Wheel {
   drawItemBackgrounds(ctx, angles = []) {
     for (const [i, item] of this._items.entries()) {
       ctx.save();
+
+      // Set the background color of the segments
       ctx.fillStyle = item.backgroundColor ?? this._itemBackgroundColors[i % this._itemBackgroundColors.length];
+
       if (item.path instanceof Path2D) {
         ctx.fill(item.path);
       } else {
         ctx.restore();
         continue;
       }
-      // Pulsing glow effect for the winning segment
+
+      // --- Pulsing Glow Effect for Winning Segment ---
       if (this._isGlowActive && this.highlightIndex === i) {
-        const pulse = Math.sin(this._glowPulseValue);
-        const pulseIntensity = (pulse + 1) / 2;
+        const now = performance.now();
+        const pulseCycle = (now % 2000) / 2000; // Create a smooth pulse cycle (2 seconds)
+        const pulse = Math.sin(pulseCycle * Math.PI * 2); // Pulse between -1 and 1
+        const pulseIntensity = (pulse + 1) / 2; // Map to 0-1 range for smooth glowing
+
+        // Dynamically adjust shadow color based on pulse (e.g., white to lavender)
+        const shadowColor = `rgb(${Math.floor(255 * pulseIntensity)}, ${Math.floor(255 * (1 - pulseIntensity))}, 255)`;
+
+        // Apply the glowing shadow effect to the winning segment
         ctx.save();
-        ctx.shadowBlur = 5 + pulseIntensity * 20;
-        ctx.shadowColor = '#fff';
-        ctx.globalAlpha = 0.7 + 0.3 * pulseIntensity;
+        ctx.shadowBlur = 15 + pulseIntensity * 40; // Increased blur for stronger glow
+        ctx.shadowColor = shadowColor;
+        ctx.globalAlpha = 0.6 + pulseIntensity * 0.4; // Gradually change opacity
+
+        // Fill the segment path with the glow effect
         ctx.fill(item.path);
         ctx.restore();
       }
+
       ctx.restore();
     }
   }
@@ -440,68 +454,74 @@ export class Wheel {
   }
 
   drawItemLabels(ctx, angles = []) {
-
     const actualItemLabelBaselineOffset = this._itemLabelFontSize * -this.itemLabelBaselineOffset;
     const actualDebugLineWidth = this.getScaledNumber(1);
     const actualLabelStrokeWidth = this.getScaledNumber(this._itemLabelStrokeWidth * 2);
 
+    // Determine if the wheel is stable (not spinning)
+    const isStable = this._rotationSpeed === 0 && this._spinToTimeEnd === null && this._lastSpinFrameTime === null;
+    const numOptions = this._items.length;
+
+    // Dynamic scaling factor based on number of options
+    // For more than 10 options, increase the scale slightly for better visibility
+    let scale = 1.0;
+    if (numOptions <= 3) scale = 1.05;
+    else if (numOptions <= 5) scale = 1.0;
+    else if (numOptions <= 8) scale = 0.92;
+    else if (numOptions <= 10) scale = 0.85;
+    else if (numOptions <= 14) scale = 0.80;
+    else if (numOptions <= 20) scale = 0.75;
+    else scale = 0.70;
+
     for (const [i, a] of angles.entries()) {
-
       const item = this._items[i];
-
       const actualLabelColor = item.labelColor
-        || (this._itemLabelColors[i % this._itemLabelColors.length] // Fall back to a value from the repeating set.
-        || 'transparent'); // Handle empty string/undefined.
-
+        || (this._itemLabelColors[i % this._itemLabelColors.length] || 'transparent');
       if (item.label.trim() === '' || actualLabelColor === 'transparent') continue;
-
       ctx.save();
-
       ctx.clip(item.path);
-
       const angle = a.start + ((a.end - a.start) / 2);
-
       ctx.translate(
         this._center.x + Math.cos(util.degRad(angle + Constants.arcAdjust)) * (this._actualRadius * this.itemLabelRadius),
         this._center.y + Math.sin(util.degRad(angle + Constants.arcAdjust)) * (this._actualRadius * this.itemLabelRadius)
       );
-
       ctx.rotate(util.degRad(angle + Constants.arcAdjust));
-
       ctx.rotate(util.degRad(this.itemLabelRotation));
-
       // Highlight label for winner
       if (this.highlightIndex === i) {
-        ctx.font = `bold ${this._itemLabelFontSize * 1.15}px ${this._itemLabelFont}`;
+        ctx.font = `bold ${this._itemLabelFontSize * 1.15 * scale}px ${this._itemLabelFont}`;
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 4;
         ctx.strokeText(item.label, 0, this._itemLabelFontSize * -this.itemLabelBaselineOffset);
         ctx.fillStyle = '#FFD700';
       }
-
+      let displayLabel = item.label;
+      if (displayLabel.length > 30) {
+        displayLabel = displayLabel.slice(0, 30) + '....';
+      }
+      // --- Dynamically scale text size based on number of options ---
+      if (isStable) {
+        ctx.font = `bold ${this._itemLabelFontSize * 1.18 * scale}px ${this._itemLabelFont}`;
+      } else {
+        ctx.font = `bold ${this._itemLabelFontSize * 0.98 * scale}px ${this._itemLabelFont}`;
+      }
       if (this._itemLabelStrokeWidth > 0) {
         ctx.lineWidth = actualLabelStrokeWidth;
         ctx.strokeStyle = this._itemLabelStrokeColor;
         ctx.lineJoin = 'round';
-        ctx.strokeText(item.label, 0, actualItemLabelBaselineOffset);
+        ctx.strokeText(displayLabel, 0, actualItemLabelBaselineOffset);
       }
-
       ctx.fillStyle = actualLabelColor;
-      ctx.fillText(item.label, 0, actualItemLabelBaselineOffset);
-
+      ctx.fillText(displayLabel, 0, actualItemLabelBaselineOffset);
       if (this.debug) {
-        // Draw label anchor point
         const circleDiameter = this.getScaledNumber(2);
         ctx.beginPath();
         ctx.arc(0, 0, circleDiameter, 0, 2 * Math.PI);
         ctx.fillStyle = Constants.Debugging.labelRadiusColor;
         ctx.fill();
       }
-
       ctx.restore();
-
     }
-
   }
 
   drawDebugDragPoints(ctx) {
@@ -614,7 +634,6 @@ export class Wheel {
    * For example easing functions see [easing-utils](https://github.com/AndrewRayCode/easing-utils).
    */
   spinTo(rotation = 0, duration = 0, easingFunction = null) {
-    console.log('[Wheel.spinTo] rotation:', rotation, '| duration:', duration);
     if (!util.isNumber(rotation)) throw new Error('Error: rotation must be a number');
     if (!util.isNumber(duration)) throw new Error('Error: duration must be a number');
     this.stop();
@@ -634,7 +653,6 @@ export class Wheel {
    * For example easing functions see [easing-utils](https://github.com/AndrewRayCode/easing-utils).
    */
   spinToItem(itemIndex = 0, duration = 0, spinToCenter = true, numberOfRevolutions = 1, direction = 1, easingFunction = null) {
-    console.log('[Wheel.spinToItem] itemIndex:', itemIndex, '| duration:', duration, '| spinToCenter:', spinToCenter, '| numberOfRevolutions:', numberOfRevolutions, '| direction:', direction);
     this.stop();
     this._dragEvents = [];
     const itemAngle = spinToCenter ? this.items[itemIndex].getCenterAngle() : this.items[itemIndex].getRandomAngle();
@@ -657,8 +675,6 @@ export class Wheel {
    * Immediately stop the wheel from spinning, regardless of which method was used to spin it.
    */
   stop() {
-    console.log('wheel.stop() method called'); // <<< ADD THIS LINE
-
     // Track if we need to raise the onRest event
     const wasSpin = this._lastSpinFrameTime !== null;
 
@@ -761,18 +777,12 @@ export class Wheel {
    * Return an array of objects containing the start angle (inclusive) and end angle (inclusive) of each item.
    */
   getItemAngles(initialRotation = 0) {
-    console.log('[getItemAngles] Calculating angles. Initial rotation:', initialRotation);
-    console.log('[getItemAngles] Items:', this._items.map(i => ({ label: i.label, weight: i.weight })));
-
     if (this.items.length === 0) {
-        console.log('[getItemAngles] No items, returning empty array.');
         return [];
     }
 
     // Equal visual segments
     const itemAngle = 360 / this.items.length;
-    console.log(`[getItemAngles] Calculated equal angle per item: ${itemAngle} (360 / ${this.items.length})`);
-
     let lastItemAngle = initialRotation;
     const angles = [];
 
@@ -781,7 +791,6 @@ export class Wheel {
         start: lastItemAngle,
         end: lastItemAngle + itemAngle,
       });
-      console.log(`[getItemAngles] Item ${index} ('${item.label}'): Start=${lastItemAngle.toFixed(2)}, End=${(lastItemAngle + itemAngle).toFixed(2)}`);
       lastItemAngle += itemAngle;
     }
 
@@ -790,12 +799,10 @@ export class Wheel {
       const lastIndex = angles.length - 1;
       const expectedEnd = angles[0].start + 360;
       if (angles[lastIndex].end !== expectedEnd) {
-          console.warn(`[getItemAngles] Adjusting last item's end angle from ${angles[lastIndex].end.toFixed(2)} to ${expectedEnd.toFixed(2)} for precision.`);
           angles[lastIndex].end = expectedEnd;
       }
     }
 
-    console.log('[getItemAngles] Final calculated angles:', angles.map(a => ({ start: a.start.toFixed(2), end: a.end.toFixed(2) })));
     return angles;
   }
 
@@ -902,6 +909,44 @@ export class Wheel {
     ctx.fill();
     ctx.stroke();
     ctx.restore();
+  }
+
+  /**
+   * Add glow effect to the winning segment.
+   */
+  addGlowToWinningSegment(winningIndex) {
+    const canvas = this.canvas;
+    const ctx = canvas.getContext('2d');
+    const segment = this.segments[winningIndex];
+
+    if (!segment) {
+      console.error('Winning segment not found');
+      return;
+    }
+
+    const { startAngle, endAngle } = segment;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.lineTo(centerX, centerY);
+    ctx.closePath();
+
+    ctx.shadowColor = 'rgba(255, 215, 0, 0.8)'; // Gold glow
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.3)'; // Semi-transparent gold
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
+   * Highlight the winning segment after the wheel stops spinning.
+   */
+  highlightWinningSegment(winningIndex) {
+    this.addGlowToWinningSegment(winningIndex);
   }
 
   /**
@@ -1542,7 +1587,6 @@ export class Wheel {
   }
 
   raiseEvent_onRest(data = {}) {
-    console.log('raiseEvent_onRest() called'); // <<< ADD THIS LINE
     this.onRest?.({
       type: 'rest',
       currentIndex: this._currentIndex,

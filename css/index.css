@@ -1,15 +1,34 @@
 * {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Helvetica Neue', 'Poppins', 'Roboto', Arial, sans-serif;
   font-size: 15px;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  scrollbar-width: thin;
+  scrollbar-color: #997BFF #221a36;
 }
 
 html, body {
   height: 100%;
-  background-color: #000000;
+  background: linear-gradient(135deg, #221a36 0%, #3a2d6d 100%);
+  background-attachment: fixed;
+  background-color: #221a36;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* Remove blur effect */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background:
+    radial-gradient(ellipse at 80% 10%, rgba(153,123,255,0.10) 0%, rgba(58,45,109,0.0) 70%),
+    radial-gradient(ellipse at 20% 80%, rgba(168,143,255,0.08) 0%, rgba(58,45,109,0.0) 70%),
+    linear-gradient(120deg, rgba(168,143,255,0.06) 0%, rgba(249,193,213,0.04) 100%);
 }
 
 body {
@@ -23,75 +42,127 @@ body {
 }
 
 .controls-wrapper {
-  padding: 20px;
+  padding: 32px 24px 20px 24px;
   background-color: #1A1A1A;
   width: 300px;
   overflow-y: auto;
   border-right: 1px solid #333333;
+  border-radius: 15px;
+  margin: 32px 0 32px 32px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .options-input {
-  margin-bottom: 20px;
   display: flex;
-  gap: 10px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
 .options-input input {
-  flex: 1;
-  padding: 8px;
-  background-color: #000000;
-  border: 1px solid #997BFF;
-  border-radius: 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 1.1em;
+  background: #2C2C2C;
   color: #FFFFFF;
-  transition: all 0.3s ease;
+  border: 1.5px solid #997BFF;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  box-sizing: border-box;
+  font-family: 'Helvetica Neue', 'Poppins', 'Roboto', Arial, sans-serif;
+}
+
+.options-input input::placeholder {
+  color: #b0b0b0;
+  opacity: 1;
 }
 
 .options-input input:focus {
   outline: none;
   border-color: #A88FFF;
-  box-shadow: 0 0 5px rgba(153, 123, 255, 0.5);
+  box-shadow: 0 0 8px #A88FFF44;
 }
 
 .options-input button {
-  padding: 8px 16px;
-  background-image: linear-gradient(to bottom, #997BFF, #8A6AE0);
-  color: #0B0B0B;
-  border: 1px solid #8A6AE0;
-  border-radius: 4px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 1.1em;
+  font-weight: 700;
+  writing-mode: horizontal-tb;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #997BFF 0%, #A88FFF 100%);
+  color: #FFFFFF;
+  border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: bold;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 12px rgba(153,123,255,0.18);
+  outline: none;
 }
 
 .options-input button:hover {
-  filter: brightness(1.15);
+  background: linear-gradient(90deg, #A88FFF 0%, #997BFF 100%);
+  transform: scale(1.07);
+  box-shadow: 0 8px 32px rgba(153,123,255,0.28);
 }
 
 h3 {
   color: #997BFF;
   font-size: 1.2em;
   margin-bottom: 15px;
+  text-shadow: 0 2px 8px #221a36, 0 0 8px #997BFF33;
 }
 
 #optionsList {
   list-style: none;
-  margin: 10px 0;
+  margin: 16px 0;
 }
 
 #optionsList li {
-  background-color: #1A1A1A;
-  padding: 8px;
-  margin-bottom: 8px;
-  border-radius: 4px;
+  background: #23233a;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border: 1px solid #333333;
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(153,123,255,0.08);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.option-label {
+  flex: 1 1 0;
+  min-width: 0;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  display: block;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #FFFFFF;
+  transition: color 0.25s;
 }
 
 #optionsList li:hover {
   border-color: #997BFF;
+  box-shadow: 0 4px 16px rgba(153,123,255,0.18);
+}
+
+#optionsList li:hover .option-label {
+  color: #A88FFF;
 }
 
 #optionsList button {
@@ -102,6 +173,8 @@ h3 {
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 #optionsList button:hover {
@@ -113,36 +186,67 @@ h3 {
   flex: 1;
   overflow: hidden;
   position: relative;
-  background: #000000;
+  background: linear-gradient(120deg, #221a36 0%, #3a2d6d 60%, #997BFF 100%);
   display: flex;
   justify-content: center;
   align-items: center;
+  border-radius: 28px;
+  margin: 32px 32px 32px 0;
+}
+
+.center-logo-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 22;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.center-logo-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #221a36;
+  border: 2.5px solid #997BFF;
+  pointer-events: none;
+  box-shadow: none;
 }
 
 /* Style for the center spin button */
 .spin-button-center {
-  position: absolute; /* Position relative to the wheel-wrapper */
-  z-index: 10; /* Ensure it's above the canvas */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateY(55px);
+  z-index: 21;
   width: 80px; /* Adjust size as needed */
   height: 80px;
   border-radius: 50%; /* Make it circular */
-  background-image: linear-gradient(to bottom, #997BFF, #8A6AE0);
-  color: #0B0B0B;
-  border: 2px solid #FFFFFF; /* White border for contrast */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  font-size: 1.1em;
-  font-weight: bold;
+  background: linear-gradient(90deg, #997BFF 0%, #A88FFF 100%);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 2px 12px rgba(153,123,255,0.18);
+  font-size: 1.15em;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
   display: flex; /* Center text inside */
   justify-content: center;
   align-items: center;
   text-align: center;
+  outline: none;
+  letter-spacing: 0.04em;
 }
 
 .spin-button-center:hover {
-  filter: brightness(1.15);
-  transform: scale(1.05);
+  background: linear-gradient(90deg, #A88FFF 0%, #997BFF 100%);
+  transform: scale(1.07);
+  box-shadow: 0 8px 32px rgba(153,123,255,0.28);
 }
 
 .spin-button-center:active {
@@ -150,46 +254,81 @@ h3 {
   filter: brightness(0.9);
 }
 
+.spin-button-center.center-logo-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 21;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  box-shadow: 0 4px 16px rgba(153,123,255,0.18), 0 2px 8px 0 rgba(90,200,250,0.10);
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.spin-button-center.center-logo-btn:hover,
+.spin-button-center.center-logo-btn:focus {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 8px 32px rgba(153,123,255,0.28);
+}
+
 /* Style for the Save Weights button */
 #saveWeightsBtn {
   width: 100%;
-  padding: 12px 20px; /* Adjusted padding slightly from spin-button */
-  font-size: 1em; /* Adjusted font-size slightly */
-  font-weight: bold;
-  background-image: linear-gradient(to bottom, #997BFF, #8A6AE0);
-  color: #0B0B0B;
-  border: 1px solid #8A6AE0;
-  border-radius: 4px;
+  padding: 16px 28px;
+  font-size: 1.15em;
+  font-weight: 700;
+  background: linear-gradient(90deg, #997BFF 0%, #A88FFF 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 15px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
   margin-top: 15px; /* Added margin top for spacing */
   box-sizing: border-box; /* Ensure padding doesn't increase width */
+  box-shadow: 0 2px 12px rgba(153,123,255,0.18);
+  outline: none;
+  letter-spacing: 0.04em;
 }
 
 #saveWeightsBtn:hover {
-  filter: brightness(1.15);
+  background: linear-gradient(90deg, #A88FFF 0%, #997BFF 100%);
+  transform: scale(1.07);
+  box-shadow: 0 8px 32px rgba(153,123,255,0.28);
 }
 
 .spin-controls {
-  margin: 20px 0;
+  margin: 24px 0;
 }
 
 .spin-button {
   width: 100%;
-  padding: 15px;
-  font-size: 1.2em;
-  font-weight: bold;
-  background-image: linear-gradient(to bottom, #997BFF, #8A6AE0);
-  color: #0B0B0B;
-  border: 1px solid #8A6AE0;
-  border-radius: 4px;
+  padding: 16px 28px;
+  font-size: 1.15em;
+  font-weight: 700;
+  background: linear-gradient(90deg, #997BFF 0%, #A88FFF 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 15px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  letter-spacing: 1px;
+  transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 12px rgba(153,123,255,0.18);
+  outline: none;
 }
 
 .spin-button:hover:not(:disabled) {
-  filter: brightness(1.15);
+  background: linear-gradient(90deg, #A88FFF 0%, #997BFF 100%);
+  transform: scale(1.07);
+  box-shadow: 0 8px 32px rgba(153,123,255,0.28);
 }
 
 spin-button:disabled {
@@ -201,16 +340,21 @@ spin-button:disabled {
 }
 
 #resultDisplay {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #1A1A1A;
-  border: 1px solid #997BFF;
-  border-radius: 4px;
+  margin-top: 24px;
+  padding: 18px 12px;
+  background: #23233a;
+  border-radius: 15px;
   text-align: center;
   font-weight: bold;
-  font-size: 1.2em;
+  font-size: 1.3em;
   display: none;
-  color: #C6B7FF; /* Lighter purple for base color */
+  color: #A88FFF;
+  box-shadow: 0 2px 12px rgba(153,123,255,0.18);
+  max-width: 100%;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 8px #221a36, 0 0 8px #997BFF33;
 }
 
 /* New Pulsating Bold Animation */
@@ -264,6 +408,76 @@ spin-button:disabled {
     font-weight: bold;
 }
 
+#historySection {
+  margin-top: 28px;
+  padding: 18px 14px 14px 14px;
+  background: rgba(24, 24, 40, 0.85);
+  border-radius: 15px;
+  box-shadow: 0 4px 24px 0 rgba(80, 80, 120, 0.13);
+  border: 1.5px solid #282848;
+  border-top: 2px solid #997BFF;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#historySection h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1em;
+  color: #a88fff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px #221a36, 0 0 8px #997BFF33;
+}
+
+#winnerHistoryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#winnerHistoryList li {
+  padding: 8px 0 8px 0;
+  border-bottom: 1px solid #282848;
+  color: #e0e0ff;
+  font-size: 1em;
+  letter-spacing: 0.2px;
+  transition: color 0.2s, background 0.2s;
+  border-radius: 8px;
+}
+
+#winnerHistoryList li:last-child {
+  border-bottom: none;
+}
+
+#winnerHistoryList li:hover {
+  color: #997BFF;
+  background: rgba(153,123,255,0.08);
+}
+
+/* --- Custom Scrollbar Styling --- */
+::-webkit-scrollbar {
+  width: 10px;
+  background: #221a36;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #997BFF 0%, #3a2d6d 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(153,123,255,0.12);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #A88FFF 0%, #997BFF 100%);
+}
+::-webkit-scrollbar-corner {
+  background: #221a36;
+}
+
 /* --- Responsive Styles --- */
 @media (max-width: 768px) {
   body {
@@ -300,4 +514,10 @@ spin-button:disabled {
   .spin-button {
     padding: 10px 15px; /* Adjust button padding */
   }
+}
+
+#resultDisplay, #historySection, #optionsList, .spin-controls, .options-input, #winnerHistoryList, .option-label {
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }

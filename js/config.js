@@ -21,12 +21,12 @@ window.onload = () => {
       options = saved ? JSON.parse(saved) : [];
       if (!Array.isArray(options)) options = [];
       if (options.length === 0) {
-        options = [{ label: 'Add your options!', weight: 1 }];
+        options = [{ label: 'Add your options!', weight: 0 }];
         saveOptions();
       }
     } catch (e) {
       console.error("Error loading options:", e);
-      options = [{ label: 'Add your options!', weight: 1 }];
+      options = [{ label: 'Add your options!', weight: 0 }];
       saveOptions();
     }
   }
@@ -43,7 +43,7 @@ window.onload = () => {
   function renderOptions() {
     console.log('Rendering options. Current options:', JSON.stringify(options)); // Log options at start of render
     optionsList.innerHTML = '';
-    const displayOptions = options.length > 1 ? options.filter(opt => opt.label !== 'Add your options!') : options;
+    const displayOptions = options.length >=0 ? options.filter(opt => opt.label !== 'Add your options!') : options;
 
     displayOptions.forEach((item, index) => {
       const originalIndex = options.findIndex(opt => opt.label === item.label);
@@ -55,14 +55,14 @@ window.onload = () => {
 
       label.textContent = item.label;
       console.log(`Rendering item: ${item.label}, Weight: ${item.weight}`); // Log item weight before setting input
-      weightInput.value = item.weight || 1;
+      weightInput.value = item.weight || 0;
       console.log(`Set input value for ${item.label} to: ${weightInput.value}`); // Log the value set to the input
       weightInput.id = `weight-${originalIndex}`;
       weightInput.setAttribute('data-index', originalIndex);
 
       weightInput.addEventListener('input', (e) => {
         let val = parseInt(e.target.value, 10);
-        if (isNaN(val) || val < 1) val = 1;
+        if (isNaN(val) || val < 0) val = 0;
         e.target.value = val;
         const idxToUpdate = parseInt(e.target.getAttribute('data-index'), 10);
         if (options[idxToUpdate]) {
@@ -94,12 +94,12 @@ window.onload = () => {
     }
 
     // Add the new option
-    options.push({ label, weight: 1 });
+    options.push({ label, weight: 0 });
     console.log('Before weight reset:', JSON.stringify(options)); // Log before reset
 
     // Reset all weights to 1
     options.forEach(option => {
-      option.weight = 1;
+      option.weight = 0;
     });
     console.log('After weight reset:', JSON.stringify(options)); // Log after reset
 
@@ -118,7 +118,7 @@ window.onload = () => {
       saveOptions();
       renderOptions();
     } else if (options.length === 1 && options[0].label !== 'Add your options!') {
-      options = [{ label: 'Add your options!', weight: 1 }];
+      options = [{ label: 'Add your options!', weight: 0 }];
       saveOptions();
       renderOptions();
     } else {
@@ -126,12 +126,42 @@ window.onload = () => {
     }
   }
 
+  // Add a hard check to ensure the sum of weights is exactly 100
+  function validateWeightsHardCheck() {
+    const optionsToValidate = options.filter(opt => opt.label !== 'Add your options!');
+
+    // Calculate the total weight
+    const totalWeight = optionsToValidate.reduce((sum, item) => {
+      const weight = parseInt(item.weight || '0', 10);
+      return sum + (isNaN(weight) || weight < 0 ? 0 : weight);
+    }, 0);
+
+    console.log('[validateWeightsHardCheck] Total weight:', totalWeight);
+
+    // Check if the total weight is 100
+    if (totalWeight !== 100) {
+      const errorMessage = `Error: Total weight must be exactly 100. Current total: ${totalWeight}`;
+      //alert(errorMessage); // Show an alert to the user
+      throw new Error(errorMessage); // Throw an error to enforce the hard check
+    }
+  }
+
   // --- Save Weights ---
   function saveWeights() {
-    saveOptions();
-    resultDisplay.textContent = 'Weights saved successfully!';
-    resultDisplay.classList.add('show');
-    setTimeout(() => resultDisplay.classList.remove('show'), 2000);
+    try {
+      validateWeightsHardCheck(); // Perform the hard check before saving
+      saveOptions();
+      resultDisplay.textContent = 'Weights saved successfully!';
+      resultDisplay.style.color = '#90EE90'; // Light green for success
+      resultDisplay.classList.add('show');
+      setTimeout(() => resultDisplay.classList.remove('show'), 3000);
+    } catch (error) {
+      console.error('[saveWeights] Validation failed:', error.message);
+      resultDisplay.textContent = error.message;
+      resultDisplay.style.color = '#FF6347'; // Red for error
+      resultDisplay.classList.add('show');
+      setTimeout(() => resultDisplay.classList.remove('show'), 5000);
+    }
   }
 
   // --- Event Listeners ---

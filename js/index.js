@@ -1,4 +1,5 @@
 import {Wheel} from '../dist/spin-wheel-esm.js';
+import * as easing from '../scripts/easing.js';
 
 window.onload = () => {
   let wheel;
@@ -17,13 +18,12 @@ window.onload = () => {
 
   // Function to determine label color based on background
   function getContrastColor(backgroundColor) {
-    // Simple check for light vs dark purple/white/gray
     return backgroundColor === '#FFFFFF' || 
            backgroundColor.startsWith('#A') || 
            backgroundColor.startsWith('#C') ||
-           backgroundColor.startsWith('#9') // Added base purple check
-           ? '#0B0B0B' // Dark text for light backgrounds
-           : '#FFFFFF'; // White text for dark backgrounds
+           backgroundColor.startsWith('#9') 
+           ? '#0B0B0B' 
+           : '#FFFFFF'; 
   }
 
   // Load saved speed from localStorage
@@ -38,18 +38,18 @@ window.onload = () => {
       { label: 'Add your options!' }
     ],
     itemBackgroundColors: [
-      '#997BFF', // Base Purple
-      '#A88FFF', // 10% Lighter
-      '#C6B7FF', // 25% Lighter
-      '#8A6AE0', // 10% Darker
-      '#6C48A3', // 25% Darker
-      '#FFFFFF', // White for contrast
-      '#1A1A1A', // Dark Gray
+      '#997BFF', 
+      '#A88FFF', 
+      '#C6B7FF', 
+      '#8A6AE0', 
+      '#6C48A3', 
+      '#FFFFFF', 
+      '#1A1A1A', 
     ],
-    itemLabelColors: ['#0B0B0B', '#FFFFFF'], // Dark text on light segments, white on dark
+    itemLabelColors: ['#0B0B0B', '#FFFFFF'], 
     itemLabelFont: 'Segoe UI, sans-serif',
     itemLabelFontSizeMax: 40,
-    itemLabelRadius: 0.88, // Increased from default (likely 0.85) to move labels outwards
+    itemLabelRadius: 0.88, 
     borderColor: '#997BFF',
     borderWidth: 2,
     lineColor: '#8A6AE0',
@@ -71,27 +71,25 @@ window.onload = () => {
     try {
       const savedOptions = localStorage.getItem(STORAGE_KEY);
       options = savedOptions ? JSON.parse(savedOptions) : [];
-      if (!Array.isArray(options)) options = []; // Ensure it's an array
+      if (!Array.isArray(options)) options = []; 
     } catch (e) {
       console.error('Error loading options from localStorage:', e);
       options = [];
     }
 
     if (options.length === 0) {
-      // Initialize with default if localStorage is empty or invalid
-      options = [{ label: 'Add your options!', weight: 1 }];
+      options = [{ label: 'Add your options!', weight: 0 }];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(options));
     }
 
-    // Update wheel items based on loaded options
     wheel.items = options.map((opt, index) => ({
       label: opt.label,
-      weight: opt.weight || 1, // Ensure weight is at least 1
+      weight: opt.weight || 0, 
       backgroundColor: props.itemBackgroundColors[index % props.itemBackgroundColors.length],
       labelColor: getContrastColor(props.itemBackgroundColors[index % props.itemBackgroundColors.length])
     }));
 
-    updateOptionsDisplay(); // Update the list display as well
+    updateOptionsDisplay(); 
   }
 
   // Save current options (with weights) to localStorage
@@ -119,10 +117,9 @@ window.onload = () => {
   speedControls.querySelectorAll('.speed-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedSpeed = btn.getAttribute('data-speed');
-      localStorage.setItem(SPEED_KEY, selectedSpeed); // Save selected speed to localStorage
+      localStorage.setItem(SPEED_KEY, selectedSpeed); 
       speedControls.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active-speed'));
       btn.classList.add('active-speed');
-      console.log('[Speed Control] selectedSpeed changed to:', selectedSpeed);
     });
   });
 
@@ -135,16 +132,53 @@ window.onload = () => {
     });
   }
 
-  // Log initial selectedSpeed
-  console.log('[Init] selectedSpeed:', selectedSpeed);
-
   // Get DOM elements
   const optionInput = document.getElementById('optionInput');
   const addOptionBtn = document.getElementById('addOptionBtn');
   const optionsList = document.getElementById('optionsList');
   const resultDisplay = document.getElementById('resultDisplay');
   const spinBtn = document.getElementById('spinBtn');
-  const spinCenterBtn = document.getElementById('spinCenterBtn'); // Get the new center button
+  const spinCenterBtn = document.getElementById('spinCenterBtn'); 
+  const winnerHistoryList = document.getElementById('winnerHistoryList');
+
+  // --- Winner History Logic ---
+  const HISTORY_KEY = 'winnerHistory';
+  const MAX_HISTORY = 20;
+
+  function loadWinnerHistory() {
+    let history = [];
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      history = saved ? JSON.parse(saved) : [];
+      if (!Array.isArray(history)) history = [];
+    } catch (e) {
+      history = [];
+    }
+    return history;
+  }
+
+  function saveWinnerHistory(history) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  function renderWinnerHistory() {
+    const history = loadWinnerHistory();
+    winnerHistoryList.innerHTML = '';
+    history.forEach((winner, idx) => {
+      const li = document.createElement('li');
+      // Add trophy icon (SVG inline for best compatibility)
+      li.innerHTML = `<span class="trophy-icon" style="vertical-align:middle;margin-right:6px;">🏆</span><span>${winner}</span>`;
+      winnerHistoryList.appendChild(li);
+    });
+  }
+
+  function addWinnerToHistory(winnerLabel) {
+    let history = loadWinnerHistory();
+    history.unshift(winnerLabel);
+    if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+    saveWinnerHistory(history);
+    renderWinnerHistory();
+  }
 
   // Update the options list display based on localStorage
   function updateOptionsDisplay() {
@@ -153,37 +187,19 @@ window.onload = () => {
     let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
     if (options.length === 1 && options[0].label === 'Add your options!') {
-        // Don't display the placeholder in the list
     } else {
         options.forEach((item, index) => {
           const clone = template.content.cloneNode(true);
           const labelSpan = clone.querySelector('.option-label');
           labelSpan.textContent = item.label;
           
-          // Remove the weight display logic
-          /*
-          const weightDisplay = document.createElement('span');
-          weightDisplay.className = 'weight-display';
-          // Display the weight fetched from localStorage
-          weightDisplay.textContent = `Weight: ${item.weight || 1}`;
-          */
-          
           const removeBtn = clone.querySelector('.remove-btn');
           removeBtn.onclick = () => removeOption(index);
           
-          // Remove the placeholder replacement logic if it exists
           const weightContainer = clone.querySelector('.weight-container');
           if (weightContainer) {
-            // weightContainer.replaceWith(weightDisplay); // Don't replace with weight
-            weightContainer.remove(); // Remove the weight container placeholder if it exists
+            weightContainer.remove(); 
           }
-          /* else {
-            // If no weight-container placeholder, attempt to remove the weight display if it was added differently
-            const existingWeightDisplay = clone.querySelector('.weight-display');
-            if (existingWeightDisplay) {
-                existingWeightDisplay.remove();
-            }
-          } */
           
           optionsList.appendChild(clone);
         });
@@ -197,19 +213,17 @@ window.onload = () => {
     if (newOptionLabel) {
       let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-      // Remove placeholder if it exists
       if (options.length === 1 && options[0].label === 'Add your options!') {
         options = [];
       }
 
-      // Add the new option with default weight 1
       options.push({ 
         label: newOptionLabel,
         weight: 1 
       });
       
       saveToLocalStorage(options);
-      loadFromLocalStorage(); // Reload wheel and update display from storage
+      loadFromLocalStorage(); 
       optionInput.value = '';
     }
   }
@@ -221,10 +235,9 @@ window.onload = () => {
     if (options.length > 1) {
       options.splice(index, 1);
       saveToLocalStorage(options);
-      loadFromLocalStorage(); // Reload wheel and update display from storage
+      loadFromLocalStorage(); 
     } else if (options.length === 1 && options[0].label !== 'Add your options!') {
-        // If removing the last real option, replace with placeholder
-        options = [{ label: 'Add your options!', weight: 1 }];
+        options = [{ label: 'Add your options!', weight: 0 }];
         saveToLocalStorage(options);
         loadFromLocalStorage();
     } else {
@@ -234,100 +247,82 @@ window.onload = () => {
 
   // Spin the wheel based on weights from localStorage
   function spinWheel() {
-    console.log('[SpinWheel] Called. Current selectedSpeed:', selectedSpeed);
     spinBtn.disabled = true;
-    spinCenterBtn.disabled = true; // Disable center button too
-    resultDisplay.textContent = ''; // Clear previous result
-    resultDisplay.classList.remove('show'); // Hide result display
-    if (typeof wheel.stopGlow === 'function') wheel.stopGlow(); // Stop previous glow
+    spinCenterBtn.disabled = true; 
+    resultDisplay.textContent = ''; 
+    resultDisplay.classList.remove('show'); 
+    if (typeof wheel.stopGlow === 'function') wheel.stopGlow(); 
 
-    // Fetch options directly from localStorage for weighted calculation
     let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-    // Filter out placeholder if present
     options = options.filter(opt => opt.label !== 'Add your options!');
 
     if (options.length < 2) {
         alert('Please add at least two options to spin!');
         spinBtn.disabled = false;
-        spinCenterBtn.disabled = false; // Re-enable center button on error
+        spinCenterBtn.disabled = false;
         return;
     }
 
     const weightedArray = [];
     options.forEach((item) => {
-      const weight = parseInt(item.weight || '1', 10);
+      const weight = parseInt(item.weight || '0', 10);
       const effectiveWeight = isNaN(weight) || weight < 1 ? 1 : weight;
       for (let i = 0; i < effectiveWeight; i++) {
         weightedArray.push(item.label);
       }
-      console.log(`[spinWheel] Option '${item.label}' effective weight:`, effectiveWeight);
     });
 
     if (weightedArray.length === 0) {
       resultDisplay.textContent = 'No valid options with weights to spin!';
       spinBtn.disabled = false;
-      spinCenterBtn.disabled = false; // Re-enable center button on error
+      spinCenterBtn.disabled = false;
       return;
     }
 
-    // Shuffle and pick winner
     for (let i = weightedArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [weightedArray[i], weightedArray[j]] = [weightedArray[j], weightedArray[i]];
     }
     const winnerLabel = weightedArray[Math.floor(Math.random() * weightedArray.length)];
     
-    // Find the index of the winner in the *current wheel items* for spinToItem
     const winnerIndex = wheel.items.findIndex(item => item.label === winnerLabel);
 
     if (winnerIndex !== -1) {
-      wheel.highlightIndex = null; // Reset highlight
+      wheel.highlightIndex = null; 
       
-      let duration = 10000;
-      let revolutions = 3;
-      if (selectedSpeed === 'slow') {
-        duration = 12000;
-        revolutions = 3;
-      } else if (selectedSpeed === 'medium') {
-        duration = 10000;
-        revolutions = 6;
-      } else if (selectedSpeed === 'fast') {
-        duration = 7000;
-        revolutions = 9;
-      }
-      console.log('[Spin] selectedSpeed:', selectedSpeed, '| duration:', duration, '| revolutions:', revolutions, '| winnerIndex:', winnerIndex);
+      let baseDuration = 9000; // Increased base duration for smoother deceleration
+      let baseRevolutions = 8; // More revolutions for a longer spin
+      const numSegments = wheel.items.length;
+      const duration = baseDuration + numSegments * 300; // Even longer for more segments
+      const revolutions = baseRevolutions + Math.floor(numSegments / 3); // More revolutions for more segments
+      wheel.spinToItem(winnerIndex, duration, true, revolutions, 1, easing.cubicOut);
       
-      // Spin the visual wheel to the determined winner index
-      wheel.spinToItem(winnerIndex, duration, true, revolutions);
-      
-      // Set onRest callback for when the spin animation finishes
       wheel.onRest = () => {
         console.log('Spin finished. Winner:', winnerLabel);
-        wheel.highlightIndex = winnerIndex; // Highlight the winner segment
+        wheel.highlightIndex = winnerIndex; 
+        wheel.startGlow(); 
         resultDisplay.textContent = `Winner: ${winnerLabel}`;
-        resultDisplay.classList.add('show'); // Show and animate result display
-        spinBtn.disabled = false; // Re-enable spin button
-        spinCenterBtn.disabled = false; // Re-enable center button
+        resultDisplay.classList.add('show'); 
+        addWinnerToHistory(winnerLabel);
+        spinBtn.disabled = false; 
+        spinCenterBtn.disabled = false; 
       };
     } else {
       console.error('Winner label not found in current wheel items:', winnerLabel);
       resultDisplay.textContent = 'Error determining winner!';
       spinBtn.disabled = false;
-      spinCenterBtn.disabled = false; // Re-enable center button on error
+      spinCenterBtn.disabled = false; 
     }
   }
 
-  // Revised handleSpinComplete function in index.js - now handled by onRest in spinWheel
   function handleSpinComplete(event) {
-      // This can be kept minimal or removed if all logic is in spinWheel's onRest
       console.log('Wheel rested at index:', event.currentIndex);
   }
 
-  // Event Listeners
   addOptionBtn.addEventListener('click', addOption);
   spinBtn.addEventListener('click', spinWheel);
-  spinCenterBtn.addEventListener('click', spinWheel); // Add listener for center button
+  spinCenterBtn.addEventListener('click', spinWheel); 
   optionInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -335,7 +330,7 @@ window.onload = () => {
     }
   });
 
-  // Initialize
   loadSpeed();
-  loadFromLocalStorage(); // Load options from storage on initial load
+  loadFromLocalStorage(); 
+  renderWinnerHistory();
 };
