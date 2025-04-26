@@ -554,3 +554,86 @@ spin-button:disabled {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* Winner Popup Modal */
+.winner-popup {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(34, 26, 54, 0.75);
+  justify-content: center;
+  align-items: center;
+  transition: background 0.3s;
+}
+.winner-popup.show {
+  display: flex;
+  animation: winner-popup-fadein 0.3s;
+}
+@keyframes winner-popup-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.winner-popup-content {
+  background: linear-gradient(135deg, #997BFF 0%, #A88FFF 100%);
+  color: #fff;
+  padding: 48px 36px 36px 36px;
+  border-radius: 18px;
+  box-shadow: 0 8px 40px 0 rgba(153,123,255,0.25);
+  min-width: 320px;
+  max-width: 96vw;
+  text-align: center;
+  position: relative;
+  font-size: 2.2em;
+  animation: winner-popup-bounce 0.7s cubic-bezier(.68,-0.55,.27,1.55);
+}
+@keyframes winner-popup-bounce {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.winner-popup-title {
+  font-size: 2.7em;
+  font-weight: bold;
+  margin-bottom: 18px;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 12px #221a36, 0 0 8px #997BFF33;
+}
+.winner-popup-text {
+  font-size: 2.2em;
+  font-weight: bold;
+  color: #FFD700;
+  margin-bottom: 10px;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 12px #221a36, 0 0 8px #FFD70055;
+  opacity: 0;
+}
+.winner-popup-animate {
+  animation: winner-popup-text-expand-contract 1.2s cubic-bezier(.68,-0.55,.27,1.55) forwards;
+}
+@keyframes winner-popup-text-expand-contract {
+  0% { transform: scale(0.7); opacity: 0; }
+  30% { transform: scale(1.25); opacity: 1; }
+  55% { transform: scale(0.95); }
+  75% { transform: scale(1.12); }
+  90% { transform: scale(0.98); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.winner-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  font-size: 2em;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+.winner-popup-close:hover {
+  opacity: 1;
+}
