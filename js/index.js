@@ -141,6 +141,29 @@ window.onload = () => {
   const spinCenterBtn = document.getElementById('spinCenterBtn'); 
   const winnerHistoryList = document.getElementById('winnerHistoryList');
 
+  // Winner Popup Modal logic
+  const winnerPopup = document.getElementById('winnerPopup');
+  const winnerPopupText = document.getElementById('winnerPopupText');
+  const winnerPopupClose = document.getElementById('winnerPopupClose');
+
+  function showWinnerPopup(winnerLabel) {
+    winnerPopupText.textContent = winnerLabel;
+    winnerPopup.classList.add('show');
+    winnerPopupText.classList.remove('winner-popup-animate');
+    // Trigger reflow for animation restart
+    void winnerPopupText.offsetWidth;
+    winnerPopupText.classList.add('winner-popup-animate');
+  }
+
+  function hideWinnerPopup() {
+    winnerPopup.classList.remove('show');
+  }
+
+  winnerPopupClose.addEventListener('click', hideWinnerPopup);
+  winnerPopup.addEventListener('click', (e) => {
+    if (e.target === winnerPopup) hideWinnerPopup();
+  });
+
   // --- Winner History Logic ---
   const HISTORY_KEY = 'winnerHistory';
   const MAX_HISTORY = 20;
@@ -205,6 +228,59 @@ window.onload = () => {
         });
     }
     spinBtn.disabled = options.length < 2 || (options.length === 1 && options[0].label === 'Add your options!');
+
+    // Make optionsList draggable (UI only, does not affect wheel logic)
+    optionsList.setAttribute('draggable', 'false');
+    let dragSrcIndex = null;
+
+    optionsList.addEventListener('dragstart', function(e) {
+      const li = e.target.closest('li');
+      if (!li) return;
+      dragSrcIndex = Array.from(optionsList.children).indexOf(li);
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragSrcIndex);
+    });
+
+    optionsList.addEventListener('dragend', function(e) {
+      const li = e.target.closest('li');
+      if (li) li.classList.remove('dragging');
+    });
+
+    optionsList.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      const li = e.target.closest('li');
+      if (!li || li.classList.contains('dragging')) return;
+      li.classList.add('dragover');
+    });
+
+    optionsList.addEventListener('dragleave', function(e) {
+      const li = e.target.closest('li');
+      if (li) li.classList.remove('dragover');
+    });
+
+    optionsList.addEventListener('drop', function(e) {
+      e.preventDefault();
+      const li = e.target.closest('li');
+      if (!li) return;
+      const dropIndex = Array.from(optionsList.children).indexOf(li);
+      if (dragSrcIndex === null || dragSrcIndex === dropIndex) return;
+      const dragged = optionsList.children[dragSrcIndex];
+      if (dragged) {
+        if (dropIndex > dragSrcIndex) {
+          li.after(dragged);
+        } else {
+          li.before(dragged);
+        }
+      }
+      optionsList.querySelectorAll('li').forEach(el => el.classList.remove('dragover', 'dragging'));
+      dragSrcIndex = null;
+    });
+
+    // Set draggable attribute for each option item
+    optionsList.querySelectorAll('li').forEach(li => {
+      li.setAttribute('draggable', 'true');
+    });
   }
 
   // Add a new option to localStorage
@@ -253,6 +329,9 @@ window.onload = () => {
     resultDisplay.classList.remove('show'); 
     if (typeof wheel.stopGlow === 'function') wheel.stopGlow(); 
 
+    // Disable gesture/touch controls during spin
+    wheel.isInteractive = false;
+
     let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
     options = options.filter(opt => opt.label !== 'Add your options!');
@@ -261,15 +340,18 @@ window.onload = () => {
         alert('Please add at least two options to spin!');
         spinBtn.disabled = false;
         spinCenterBtn.disabled = false;
+        // Re-enable gesture/touch controls if spin fails
+        wheel.isInteractive = true;
         return;
     }
 
     const weightedArray = [];
     options.forEach((item) => {
       const weight = parseInt(item.weight || '0', 10);
-      const effectiveWeight = isNaN(weight) || weight < 1 ? 1 : weight;
-      for (let i = 0; i < effectiveWeight; i++) {
-        weightedArray.push(item.label);
+      if (!isNaN(weight) && weight > 0) {
+        for (let i = 0; i < weight; i++) {
+          weightedArray.push(item.label);
+        }
       }
     });
 
@@ -277,6 +359,8 @@ window.onload = () => {
       resultDisplay.textContent = 'No valid options with weights to spin!';
       spinBtn.disabled = false;
       spinCenterBtn.disabled = false;
+      // Re-enable gesture/touch controls if spin fails
+      wheel.isInteractive = true;
       return;
     }
 
@@ -296,23 +380,29 @@ window.onload = () => {
       const numSegments = wheel.items.length;
       const duration = baseDuration + numSegments * 300; // Even longer for more segments
       const revolutions = baseRevolutions + Math.floor(numSegments / 3); // More revolutions for more segments
-      wheel.spinToItem(winnerIndex, duration, true, revolutions, 1, easing.cubicOut);
+      wheel.spinToItem(winnerIndex, duration, false, revolutions, 1, easing.quinticOut);
       
       wheel.onRest = () => {
-        console.log('Spin finished. Winner:', winnerLabel);
-        wheel.highlightIndex = winnerIndex; 
-        wheel.startGlow(); 
+        console.log('[onRest] Spin finished. Winner:', winnerLabel, 'at', Date.now());
+        wheel.highlightIndex = winnerIndex;
+        console.log('[onRest] Calling startGlow at', Date.now());
+        wheel.startGlow();
         resultDisplay.textContent = `Winner: ${winnerLabel}`;
         resultDisplay.classList.add('show'); 
+        showWinnerPopup(winnerLabel);
         addWinnerToHistory(winnerLabel);
         spinBtn.disabled = false; 
         spinCenterBtn.disabled = false; 
+        // Re-enable gesture/touch controls after spin
+        wheel.isInteractive = true;
       };
     } else {
       console.error('Winner label not found in current wheel items:', winnerLabel);
       resultDisplay.textContent = 'Error determining winner!';
       spinBtn.disabled = false;
       spinCenterBtn.disabled = false; 
+      // Re-enable gesture/touch controls if spin fails
+      wheel.isInteractive = true;
     }
   }
 

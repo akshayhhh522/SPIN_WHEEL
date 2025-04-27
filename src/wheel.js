@@ -890,11 +890,12 @@ export class Wheel {
    */
   drawPointerMarker(ctx) {
     if (!ctx || !this._center) return;
-    const markerWidth = this.getScaledNumber(36); // wider for visibility
-    const markerHeight = this.getScaledNumber(40); // taller for a longer pointer
+    // Use fixed pixel size for marker
+    const markerWidth = 36; // px
+    const markerHeight = 40; // px
     // Base at the very top of the canvas
     const baseY = 0;
-    const tipY = this._center.y - this._actualRadius - this.getScaledNumber(8); // tip just above the wheel
+    const tipY = this._center.y - this._actualRadius - 8; // tip just above the wheel
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(this._center.x, tipY); // tip of the triangle (points at winning option)
@@ -903,7 +904,7 @@ export class Wheel {
     ctx.closePath();
     ctx.fillStyle = this._borderColor || '#FF4136'; // match wheel border color
     ctx.strokeStyle = '#fff'; // white border for contrast
-    ctx.lineWidth = this.getScaledNumber(3);
+    ctx.lineWidth = 3;
     ctx.shadowColor = 'rgba(0,0,0,0.18)';
     ctx.shadowBlur = 8;
     ctx.fill();
@@ -1494,7 +1495,8 @@ export class Wheel {
    * Enter the drag state.
    */
   dragStart(point = {x: 0, y: 0}) {
-
+    // Disable drag if a protected spin is in progress
+    if (this._isProtectedSpin) return;
     if (this.canvas === null) return;
 
     const p = util.translateXYToElement(point, this.canvas, this.getActualPixelRatio());
