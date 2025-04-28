@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <title>Spin Wheel Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-  <link rel="icon" href="data:image/x-icon;," type="image/x-icon">
+  <link rel="icon" type="image/png" href="assets/image (3).png">
   <link rel="stylesheet" href="css/index.css"/>
   <script src="js/index.js" type="module"></script>
 </head>
@@ -36,18 +36,27 @@
       <button id="spinBtn" class="spin-button">Spin!</button>
     </div>
 
-    <div id="resultDisplay" class="show">Winner: 3</div>
+    <div id="resultDisplay"></div>
+    <div id="historySection">
+      <h3>History</h3>
+      <ul id="winnerHistoryList"></ul>
+    </div>
   </div>
 
   <div class="wheel-wrapper">
-    <button id="spinCenterBtn" class="spin-button-center" aria-label="Spin the wheel">Spin</button>
+    <button id="spinCenterBtn" class="spin-button-center center-logo-btn" aria-label="Spin the wheel">
+      <img src="assets/image (3).png" alt="Center Logo" class="center-logo-img" />
+    </button>
   </div>
 
-  <!-- Audio Elements -->
-  <audio id="rouletteSound" src="audio/spin-roulette.wav" preload="auto"></audio> <!-- Sound for the spinning duration -->
-  <audio id="tickSound" src="audio/tick.wav" preload="auto"></audio>       <!-- Placeholder for ticking sound -->
-  <audio id="winSound" src="audio/win.wav" preload="auto"></audio>         <!-- Placeholder for win sound -->
-
+  <!-- Winner Popup Modal -->
+  <div id="winnerPopup" class="winner-popup">
+    <div class="winner-popup-content">
+      <span id="winnerPopupClose" class="winner-popup-close">&times;</span>
+      <div class="winner-popup-title">🎉 Winner! 🎉</div>
+      <div id="winnerPopupText" class="winner-popup-text"></div>
+    </div>
+  </div>
 </body>
 
 </html>
