@@ -1,5 +1,4 @@
 import {Wheel} from '../dist/spin-wheel-esm.js';
-import * as easing from '../scripts/easing.js';
 
 window.onload = () => {
   let wheel;
@@ -18,12 +17,13 @@ window.onload = () => {
 
   // Function to determine label color based on background
   function getContrastColor(backgroundColor) {
+    // Simple check for light vs dark purple/white/gray
     return backgroundColor === '#FFFFFF' || 
            backgroundColor.startsWith('#A') || 
            backgroundColor.startsWith('#C') ||
-           backgroundColor.startsWith('#9') 
-           ? '#0B0B0B' 
-           : '#FFFFFF'; 
+           backgroundColor.startsWith('#9') // Added base purple check
+           ? '#0B0B0B' // Dark text for light backgrounds
+           : '#FFFFFF'; // White text for dark backgrounds
   }
 
   // Load saved speed from localStorage
@@ -38,23 +38,23 @@ window.onload = () => {
       { label: 'Add your options!' }
     ],
     itemBackgroundColors: [
-      '#997BFF', 
-      '#A88FFF', 
-      '#C6B7FF', 
-      '#8A6AE0', 
-      '#6C48A3', 
-      '#FFFFFF', 
-      '#1A1A1A', 
+      '#997BFF', // Base Purple
+      '#A88FFF', // 10% Lighter
+      '#C6B7FF', // 25% Lighter
+      '#8A6AE0', // 10% Darker
+      '#6C48A3', // 25% Darker
+      '#FFFFFF', // White for contrast
+      '#1A1A1A', // Dark Gray
     ],
-    itemLabelColors: ['#0B0B0B', '#FFFFFF'], 
+    itemLabelColors: ['#0B0B0B', '#FFFFFF'], // Dark text on light segments, white on dark
     itemLabelFont: 'Segoe UI, sans-serif',
     itemLabelFontSizeMax: 40,
-    itemLabelRadius: 0.88, 
+    itemLabelRadius: 0.88, // Increased from default (likely 0.85) to move labels outwards
     borderColor: '#997BFF',
     borderWidth: 2,
     lineColor: '#8A6AE0',
     lineWidth: 1,
-    onRest: handleSpinComplete,
+    onRest: handleSpinComplete, // Keep existing onRest
     pointerAngle: 0,
     rotationResistance: -50,
     rotationSpeedMax: 1000
@@ -71,25 +71,27 @@ window.onload = () => {
     try {
       const savedOptions = localStorage.getItem(STORAGE_KEY);
       options = savedOptions ? JSON.parse(savedOptions) : [];
-      if (!Array.isArray(options)) options = []; 
+      if (!Array.isArray(options)) options = []; // Ensure it's an array
     } catch (e) {
       console.error('Error loading options from localStorage:', e);
       options = [];
     }
 
     if (options.length === 0) {
-      options = [{ label: 'Add your options!', weight: 0 }];
+      // Initialize with default if localStorage is empty or invalid
+      options = [{ label: 'Add your options!', weight: 1 }];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(options));
     }
 
+    // Update wheel items based on loaded options
     wheel.items = options.map((opt, index) => ({
       label: opt.label,
-      weight: opt.weight || 0, 
+      weight: opt.weight || 1, // Ensure weight is at least 1
       backgroundColor: props.itemBackgroundColors[index % props.itemBackgroundColors.length],
       labelColor: getContrastColor(props.itemBackgroundColors[index % props.itemBackgroundColors.length])
     }));
 
-    updateOptionsDisplay(); 
+    updateOptionsDisplay(); // Update the list display as well
   }
 
   // Save current options (with weights) to localStorage
@@ -117,9 +119,10 @@ window.onload = () => {
   speedControls.querySelectorAll('.speed-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedSpeed = btn.getAttribute('data-speed');
-      localStorage.setItem(SPEED_KEY, selectedSpeed); 
+      localStorage.setItem(SPEED_KEY, selectedSpeed); // Save selected speed to localStorage
       speedControls.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active-speed'));
       btn.classList.add('active-speed');
+      console.log('[Speed Control] selectedSpeed changed to:', selectedSpeed);
     });
   });
 
@@ -132,76 +135,20 @@ window.onload = () => {
     });
   }
 
+  // Log initial selectedSpeed
+  console.log('[Init] selectedSpeed:', selectedSpeed);
+
   // Get DOM elements
   const optionInput = document.getElementById('optionInput');
   const addOptionBtn = document.getElementById('addOptionBtn');
   const optionsList = document.getElementById('optionsList');
   const resultDisplay = document.getElementById('resultDisplay');
   const spinBtn = document.getElementById('spinBtn');
-  const spinCenterBtn = document.getElementById('spinCenterBtn'); 
-  const winnerHistoryList = document.getElementById('winnerHistoryList');
+  const spinCenterBtn = document.getElementById('spinCenterBtn'); // Get the new center button
 
-  // Winner Popup Modal logic
-  const winnerPopup = document.getElementById('winnerPopup');
-  const winnerPopupText = document.getElementById('winnerPopupText');
-  const winnerPopupClose = document.getElementById('winnerPopupClose');
-
-  function showWinnerPopup(winnerLabel) {
-    winnerPopupText.textContent = winnerLabel;
-    winnerPopup.classList.add('show');
-    winnerPopupText.classList.remove('winner-popup-animate');
-    // Trigger reflow for animation restart
-    void winnerPopupText.offsetWidth;
-    winnerPopupText.classList.add('winner-popup-animate');
-  }
-
-  function hideWinnerPopup() {
-    winnerPopup.classList.remove('show');
-  }
-
-  winnerPopupClose.addEventListener('click', hideWinnerPopup);
-  winnerPopup.addEventListener('click', (e) => {
-    if (e.target === winnerPopup) hideWinnerPopup();
-  });
-
-  // --- Winner History Logic ---
-  const HISTORY_KEY = 'winnerHistory';
-  const MAX_HISTORY = 20;
-
-  function loadWinnerHistory() {
-    let history = [];
-    try {
-      const saved = localStorage.getItem(HISTORY_KEY);
-      history = saved ? JSON.parse(saved) : [];
-      if (!Array.isArray(history)) history = [];
-    } catch (e) {
-      history = [];
-    }
-    return history;
-  }
-
-  function saveWinnerHistory(history) {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  }
-
-  function renderWinnerHistory() {
-    const history = loadWinnerHistory();
-    winnerHistoryList.innerHTML = '';
-    history.forEach((winner, idx) => {
-      const li = document.createElement('li');
-      // Add trophy icon (SVG inline for best compatibility)
-      li.innerHTML = `<span class="trophy-icon" style="vertical-align:middle;margin-right:6px;">🏆</span><span>${winner}</span>`;
-      winnerHistoryList.appendChild(li);
-    });
-  }
-
-  function addWinnerToHistory(winnerLabel) {
-    let history = loadWinnerHistory();
-    history.unshift(winnerLabel);
-    if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
-    saveWinnerHistory(history);
-    renderWinnerHistory();
-  }
+  // Audio Elements
+  const rouletteSound = document.getElementById('rouletteSound');
+  let isSpinning = false; // Track spinning state for tick sound
 
   // Update the options list display based on localStorage
   function updateOptionsDisplay() {
@@ -210,6 +157,7 @@ window.onload = () => {
     let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
     if (options.length === 1 && options[0].label === 'Add your options!') {
+        // Don't display the placeholder in the list
     } else {
         options.forEach((item, index) => {
           const clone = template.content.cloneNode(true);
@@ -221,66 +169,13 @@ window.onload = () => {
           
           const weightContainer = clone.querySelector('.weight-container');
           if (weightContainer) {
-            weightContainer.remove(); 
+            weightContainer.remove(); // Remove the weight container placeholder if it exists
           }
           
           optionsList.appendChild(clone);
         });
     }
     spinBtn.disabled = options.length < 2 || (options.length === 1 && options[0].label === 'Add your options!');
-
-    // Make optionsList draggable (UI only, does not affect wheel logic)
-    optionsList.setAttribute('draggable', 'false');
-    let dragSrcIndex = null;
-
-    optionsList.addEventListener('dragstart', function(e) {
-      const li = e.target.closest('li');
-      if (!li) return;
-      dragSrcIndex = Array.from(optionsList.children).indexOf(li);
-      li.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', dragSrcIndex);
-    });
-
-    optionsList.addEventListener('dragend', function(e) {
-      const li = e.target.closest('li');
-      if (li) li.classList.remove('dragging');
-    });
-
-    optionsList.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      const li = e.target.closest('li');
-      if (!li || li.classList.contains('dragging')) return;
-      li.classList.add('dragover');
-    });
-
-    optionsList.addEventListener('dragleave', function(e) {
-      const li = e.target.closest('li');
-      if (li) li.classList.remove('dragover');
-    });
-
-    optionsList.addEventListener('drop', function(e) {
-      e.preventDefault();
-      const li = e.target.closest('li');
-      if (!li) return;
-      const dropIndex = Array.from(optionsList.children).indexOf(li);
-      if (dragSrcIndex === null || dragSrcIndex === dropIndex) return;
-      const dragged = optionsList.children[dragSrcIndex];
-      if (dragged) {
-        if (dropIndex > dragSrcIndex) {
-          li.after(dragged);
-        } else {
-          li.before(dragged);
-        }
-      }
-      optionsList.querySelectorAll('li').forEach(el => el.classList.remove('dragover', 'dragging'));
-      dragSrcIndex = null;
-    });
-
-    // Set draggable attribute for each option item
-    optionsList.querySelectorAll('li').forEach(li => {
-      li.setAttribute('draggable', 'true');
-    });
   }
 
   // Add a new option to localStorage
@@ -289,17 +184,19 @@ window.onload = () => {
     if (newOptionLabel) {
       let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
+      // Remove placeholder if it exists
       if (options.length === 1 && options[0].label === 'Add your options!') {
         options = [];
       }
 
+      // Add the new option with default weight 1
       options.push({ 
         label: newOptionLabel,
         weight: 1 
       });
       
       saveToLocalStorage(options);
-      loadFromLocalStorage(); 
+      loadFromLocalStorage(); // Reload wheel and update display from storage
       optionInput.value = '';
     }
   }
@@ -311,9 +208,10 @@ window.onload = () => {
     if (options.length > 1) {
       options.splice(index, 1);
       saveToLocalStorage(options);
-      loadFromLocalStorage(); 
+      loadFromLocalStorage(); // Reload wheel and update display from storage
     } else if (options.length === 1 && options[0].label !== 'Add your options!') {
-        options = [{ label: 'Add your options!', weight: 0 }];
+        // If removing the last real option, replace with placeholder
+        options = [{ label: 'Add your options!', weight: 1 }];
         saveToLocalStorage(options);
         loadFromLocalStorage();
     } else {
@@ -323,96 +221,193 @@ window.onload = () => {
 
   // Spin the wheel based on weights from localStorage
   function spinWheel() {
+    console.log('[SpinWheel] Called. Current selectedSpeed:', selectedSpeed);
     spinBtn.disabled = true;
-    spinCenterBtn.disabled = true; 
-    resultDisplay.textContent = ''; 
-    resultDisplay.classList.remove('show'); 
-    if (typeof wheel.stopGlow === 'function') wheel.stopGlow(); 
+    spinCenterBtn.disabled = true;
+    resultDisplay.textContent = '';
+    resultDisplay.classList.remove('show');
 
-    // Disable gesture/touch controls during spin
-    wheel.isInteractive = false;
+    // Stop any previously playing sounds
+    // stopSound(rouletteSound);
 
+    // Play spin start sound - set loop to true
+    // playSound(rouletteSound, true);
+    isSpinning = true; // Set spinning flag
+
+    // Fetch options directly from localStorage for weighted calculation
     let options = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
+    // Filter out placeholder if present
     options = options.filter(opt => opt.label !== 'Add your options!');
 
     if (options.length < 2) {
-        alert('Please add at least two options to spin!');
-        spinBtn.disabled = false;
-        spinCenterBtn.disabled = false;
-        // Re-enable gesture/touch controls if spin fails
-        wheel.isInteractive = true;
-        return;
-    }
-
-    const weightedArray = [];
-    options.forEach((item) => {
-      const weight = parseInt(item.weight || '0', 10);
-      if (!isNaN(weight) && weight > 0) {
-        for (let i = 0; i < weight; i++) {
-          weightedArray.push(item.label);
-        }
-      }
-    });
-
-    if (weightedArray.length === 0) {
-      resultDisplay.textContent = 'No valid options with weights to spin!';
+      alert('Please add at least two options to spin the wheel.');
       spinBtn.disabled = false;
       spinCenterBtn.disabled = false;
-      // Re-enable gesture/touch controls if spin fails
-      wheel.isInteractive = true;
+      isSpinning = false;
+      // stopSound(rouletteSound);
       return;
     }
 
-    for (let i = weightedArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [weightedArray[i], weightedArray[j]] = [weightedArray[j], weightedArray[i]];
+    // --- Improved Weight and Probability Logic ---
+    const totalWeight = options.reduce((sum, item) => {
+      // Use 0 as default, allow 0 weight, prevent negative
+      const weight = parseInt(item.weight || '0', 10);
+      return sum + (isNaN(weight) || weight < 0 ? 0 : weight);
+    }, 0);
+
+    let winnerLabel;
+
+    // Handle case where all weights are 0
+    if (totalWeight === 0) {
+      console.warn("[spinWheel] Total weight is zero. Picking winner with equal probability.");
+      if (options.length === 0) {
+         console.error("[spinWheel] No options available to pick from.");
+         spinBtn.disabled = false;
+         spinCenterBtn.disabled = false;
+         isSpinning = false;
+         // stopSound(rouletteSound);
+         return;
+      }
+      // Pick a random index directly
+      const randomIndex = Math.floor(Math.random() * options.length);
+      winnerLabel = options[randomIndex].label;
+      console.log(`[spinWheel] Winning label (equal probability fallback): ${winnerLabel}`);
+
+    } else {
+      // Normalize weights and build cumulative distribution
+      const distribution = [];
+      let cumulative = 0;
+      options.forEach((item) => {
+        const weight = parseInt(item.weight || '0', 10);
+        const effectiveWeight = isNaN(weight) || weight < 0 ? 0 : weight;
+        const normalized = effectiveWeight / totalWeight; // Will be 0 if effectiveWeight is 0
+        cumulative += normalized;
+        distribution.push({ label: item.label, threshold: cumulative });
+      });
+
+      // Ensure the last item's threshold is exactly 1 to handle potential floating point inaccuracies
+      if (distribution.length > 0) {
+          distribution[distribution.length - 1].threshold = 1.0;
+      }
+
+      // Draw random number
+      const rand = Math.random();
+      console.log(`[spinWheel] Random draw: ${rand.toFixed(4)}`);
+
+      // Find winner based on random threshold
+      const winnerEntry = distribution.find(entry => rand <= entry.threshold);
+
+      if (!winnerEntry) {
+        // This should be very unlikely with the threshold adjustment, but handle robustly
+        console.error("[spinWheel] Failed to determine winner via threshold. This indicates an issue. Using fallback.");
+        // Fallback: Pick first item with non-zero weight, or just first item
+        const fallbackWinner = options.find(opt => (parseInt(opt.weight || '0', 10)) > 0) || options[0];
+        if (!fallbackWinner) {
+           console.error("[spinWheel] Fallback failed: No options available.");
+           spinBtn.disabled = false;
+           spinCenterBtn.disabled = false;
+           isSpinning = false;
+           // stopSound(rouletteSound);
+           return;
+        }
+        winnerLabel = fallbackWinner.label;
+        console.warn(`[spinWheel] Using fallback winner: ${winnerLabel}`);
+      } else {
+          winnerLabel = winnerEntry.label;
+      }
+
+      console.log(`[spinWheel] Winning label (weighted): ${winnerLabel}`);
     }
-    const winnerLabel = weightedArray[Math.floor(Math.random() * weightedArray.length)];
-    
+    // --- End Improved Weight and Probability Logic ---
+
+
+    // Find the index of the winner in the *current wheel items* for spinToItem
     const winnerIndex = wheel.items.findIndex(item => item.label === winnerLabel);
 
-    if (winnerIndex !== -1) {
-      wheel.highlightIndex = null; 
-      
-      let baseDuration = 9000; // Increased base duration for smoother deceleration
-      let baseRevolutions = 8; // More revolutions for a longer spin
-      const numSegments = wheel.items.length;
-      const duration = baseDuration + numSegments * 300; // Even longer for more segments
-      const revolutions = baseRevolutions + Math.floor(numSegments / 3); // More revolutions for more segments
-      wheel.spinToItem(winnerIndex, duration, false, revolutions, 1, easing.quinticOut);
-      
-      wheel.onRest = () => {
-        console.log('[onRest] Spin finished. Winner:', winnerLabel, 'at', Date.now());
-        wheel.highlightIndex = winnerIndex;
-        console.log('[onRest] Calling startGlow at', Date.now());
-        wheel.startGlow();
-        resultDisplay.textContent = `Winner: ${winnerLabel}`;
-        resultDisplay.classList.add('show'); 
-        showWinnerPopup(winnerLabel);
-        addWinnerToHistory(winnerLabel);
-        spinBtn.disabled = false; 
-        spinCenterBtn.disabled = false; 
-        // Re-enable gesture/touch controls after spin
-        wheel.isInteractive = true;
-      };
-    } else {
-      console.error('Winner label not found in current wheel items:', winnerLabel);
-      resultDisplay.textContent = 'Error determining winner!';
-      spinBtn.disabled = false;
-      spinCenterBtn.disabled = false; 
-      // Re-enable gesture/touch controls if spin fails
-      wheel.isInteractive = true;
+    spinVisually(winnerLabel, winnerIndex); // Use helper function for the rest
+  }
+
+  // Helper function to handle the visual spinning part
+  function spinVisually(winnerLabel, winnerIndex) {
+      if (winnerIndex !== -1) {
+        wheel.highlightIndex = null; // Reset highlight before spinning
+
+        // Calculate duration based on speed setting
+        let duration = 5000; // Default duration
+        let revolutions = 5; // Default revolutions
+        switch (selectedSpeed) {
+          case 'slow':
+            duration = 10000;
+            revolutions = 3;
+            break;
+          case 'fast':
+            duration = 3000;
+            revolutions = 8;
+            break;
+          case 'medium': // Default case
+          default:
+            duration = 5000;
+            revolutions = 5;
+            break;
+        }
+        console.log(`[spinVisually] Speed: ${selectedSpeed}, Duration: ${duration}, Revolutions: ${revolutions}`);
+
+        // Spin the visual wheel
+        wheel.spinToItem(winnerIndex, duration, true, revolutions);
+
+        // Set onRest callback (overwrites the one in props, which is fine)
+        wheel.onRest = () => {
+          console.log('[onRest] Spin finished. Winner:', winnerLabel);
+          isSpinning = false; // Clear spinning flag
+          // stopSound(rouletteSound); // Stop roulette sound
+
+          wheel.highlightIndex = winnerIndex; // SET HIGHLIGHT INDEX HERE
+
+          const winnerText = `Winner: ${winnerLabel}`;
+          resultDisplay.textContent = winnerText;
+          resultDisplay.classList.add('show');
+          spinBtn.disabled = false;
+          spinCenterBtn.disabled = false;
+        };
+      } else {
+        console.error(`[spinVisually] Winner label '${winnerLabel}' not found in wheel items. This shouldn't happen.`);
+        alert('An error occurred determining the winner segment.');
+        isSpinning = false; // Clear spinning flag on error too
+        // stopSound(rouletteSound); // Stop sound on error too
+        spinBtn.disabled = false;
+        spinCenterBtn.disabled = false;
+      }
+  }
+
+  // Revised handleSpinComplete function in index.js - now handled by onRest in spinWheel
+  function handleSpinComplete(event) {
+      console.log('Wheel rested at index:', event.currentIndex);
+      isSpinning = false; // Ensure flag is cleared
+      // stopSound(rouletteSound); // Stop sound if manual stop occurs
+  }
+
+  // Utility functions for sound control
+  function playSound(soundElement, loop = false) {
+    if (soundElement) {
+      soundElement.loop = loop;
+      soundElement.currentTime = 0;
+      soundElement.play();
     }
   }
 
-  function handleSpinComplete(event) {
-      console.log('Wheel rested at index:', event.currentIndex);
+  function stopSound(soundElement) {
+    if (soundElement) {
+      soundElement.pause();
+      soundElement.currentTime = 0;
+      soundElement.loop = false;
+    }
   }
 
+  // Event Listeners
   addOptionBtn.addEventListener('click', addOption);
   spinBtn.addEventListener('click', spinWheel);
-  spinCenterBtn.addEventListener('click', spinWheel); 
+  spinCenterBtn.addEventListener('click', spinWheel); // Add listener for center button
   optionInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -420,7 +415,7 @@ window.onload = () => {
     }
   });
 
+  // Initialize
   loadSpeed();
-  loadFromLocalStorage(); 
-  renderWinnerHistory();
+  loadFromLocalStorage(); // Load options from storage on initial load
 };
